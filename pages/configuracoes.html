@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - Gerenciador de invetário</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <!-- Navbar will be loaded here by navbar.js -->
+        </header>
+
+        <main class="app-main">
+            <div class="content">
+                <h1>Configurações do Sistema</h1>
+                
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h2>Preferências de Exibição</h2>
+                        <div class="setting-item">
+                            <label for="themePreference">Tema:</label>
+                            <select id="themePreference">
+                                <option value="light">Claro</option>
+                                <option value="dark">Escuro</option>
+                                <option value="system">Seguir configuração do sistema</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="languagePreference">Idioma:</label>
+                            <select id="languagePreference">
+                                <option value="pt">Português</option>
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="itemsPerPage">Itens por página:</label>
+                            <input type="number" id="itemsPerPage" min="5" max="100" value="10">
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>Notificações</h2>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="emailNotifications" checked>
+                                <span class="slider round"></span>
+                                <span>Notificações por email</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="lowStockAlerts" checked>
+                                <span class="slider round"></span>
+                                <span>Alertas de estoque baixo</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="notificationFrequency">Frequência de notificações:</label>
+                            <select id="notificationFrequency">
+                                <option value="immediate">Imediatamente</option>
+                                <option value="hourly">A cada hora</option>
+                                <option value="daily">Diariamente</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>Configurações de Segurança</h2>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="twoFactorAuth">
+                                <span class="slider round"></span>
+                                <span>Autenticação em dois fatores</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="sessionTimeout">Tempo de sessão (minutos):</label>
+                            <input type="number" id="sessionTimeout" min="5" max="1440" value="30">
+                        </div>
+                        <button class="btn btn-secondary" id="changePasswordBtn">
+                            Alterar Senha
+                        </button>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="btn btn-primary" id="saveSettingsBtn">
+                            Salvar Configurações
+                        </button>
+                        <button class="btn btn-secondary" id="resetSettingsBtn">
+                            Restaurar Padrões
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- Theme Script -->
+    <script src="../js/theme.js" type="module"></script>
+    
+    <!-- Navbar Script -->
+    <script src="../js/navbar.js" type="module"></script>
+    
+    <script src="../js/configuracoes.js" type="module"></script>
+</body>
+</html>

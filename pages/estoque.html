@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque - Gerenciador de invetário</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <!-- Navbar will be loaded here by navbar.js -->
+        </header>
+
+        <main class="app-main">
+            <div class="content">
+                <div class="page-header">
+                    <h1>Gerenciamento de Estoque</h1>
+                    <button class="btn btn-primary" id="addStockBtn">
+                        <i class="bi bi-plus-circle"></i> Adicionar ao Estoque
+                    </button>
+                </div>
+                
+                <div class="filters mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="search-bar-container w-100">
+                                <input type="text" id="stockSearch" class="custom-search-input" placeholder="Buscar peças...">
+                                <button class="custom-search-button" type="button" id="searchBtn">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="typeFilter" class="form-select">
+                                <option value="">Todos os Tipos</option>
+                                <option value="maquina">Máquina</option>
+                                <option value="periferico">Periférico</option>
+                                <option value="monitor">Monitor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="statusFilter" class="form-select">
+                                <option value="">Todos os Estados</option>
+                                <option value="disponivel">Disponível</option>
+                                <option value="em_uso">Em Uso</option>
+                                <option value="manutencao">Manutenção</option>
+                                <option value="defeito">Com Defeito</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button id="resetFilters" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-arrow-counterclockwise"></i> Limpar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>                
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Tipo</th>
+                                <th>Detalhes</th>
+                                <th>Estado</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    <p class="mt-2 mb-0">Carregando peças...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center" id="pagination">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" id="prevPage" tabindex="-1" aria-disabled="true">Anterior</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#" id="nextPage">Próximo</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </main>
+    </div>
+    <!-- Theme Script -->
+    <script src="../js/theme.js" type="module"></script>
+    
+    <!-- Stock Management Script -->
+    <script src="../js/stockManagement.js" type="module"></script>
+    
+    <!-- Initialize Bootstrap tooltips -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gerenciador de invetário</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <nav class="main-nav">
+                <div class="logo">
+                    <!--<img src="assets/logo/Gerenciador de invetário.png" alt="Gerenciador de invetário"> -->
+                    <h1>Gerenciador de invetário</h1>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#" class="active">Dashboard</a></li>
+                    <li><a href="estoque.html">Estoque</a></li>
+                    <li><a href="catalogo.html">Catálogo</a></li>
+                    <li><a href="usuarios.html">Usuários</a></li>
+                    <li class="nav-item-with-icon">
+                        <a href="configuracoes.html">Configurações</a>
+                        <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
+                            <i id="themeIcon" class="bi"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+
+        <main class="app-main">
+            <div class="content">
+                <h1>Bem-vindo ao Gerenciador de invetário</h1>
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <h3>Total de Peças</h3>
+                        <p class="number" id="totalParts">0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Peças em Estoque</h3>
+                        <p class="number" id="inStock">0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Estoque Baixo</h3>
+                        <p class="number" id="lowStock">0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Categorias</h3>
+                        <p class="number" id="categories">0</p>
+                    </div>
+                </div>
+                <div class="recent-activity">
+                    <h2>Atividade Recente</h2>
+                    <ul id="recentActivity">
+                        <li>Nenhuma atividade recente</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="../js/app.js" type="module"></script>
+    <!-- Theme Script -->
+    <script src="../js/theme.js" type="module"></script>
+    
+    <!-- Dashboard Scripts -->
+    <script src="../js/dashboard.js" type="module"></script>
+</body>
+</html>
