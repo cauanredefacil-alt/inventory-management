@@ -2,15 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { MongoClient } = require('mongodb');
 
-// Get the MongoDB client instance from server.js
+
 let db;
 
-// Middleware to set the database instance
+
 const setDatabase = (database) => {
     db = database;
 };
 
-// Get all users
+
 router.get('/', async (req, res) => {
     try {
         const users = await db.collection('users').find({}).toArray();
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Create new user
+
 router.post('/', async (req, res) => {
     const { name, email } = req.body;
 
@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Get single user
+
 router.get('/:id', async (req, res) => {
     try {
         const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
@@ -49,7 +49,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Update user
+
 router.patch('/:id', async (req, res) => {
     const { name, email } = req.body;
 
@@ -70,7 +70,7 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
-// Delete user
+
 router.delete('/:id', async (req, res) => {
     try {
         const result = await db.collection('users').deleteOne({ _id: new ObjectId(req.params.id) });
@@ -85,5 +85,5 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// Export routes and database setter
+
 module.exports = { router, setDatabase };

@@ -2,26 +2,26 @@ const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
 
-// Get the MongoDB client instance from server.js
+
 let db;
 
-// Middleware to set the database instance
+
 const setDatabase = (database) => {
     db = database;
 };
 
-// Get all parts
+
 router.get('/', async (req, res) => {
     try {
         const parts = await db.collection('parts').find({}).toArray();
         
-        // Process parts to include user from metadata if available
+
         const processedParts = parts.map(part => {
-            // If user is in metadata but not in root, move it to root
+
             if (part.metadata && part.metadata.user && !part.user) {
                 part.user = part.metadata.user;
             }
-            // If assignedTo exists but user doesn't, use assignedTo as user
+
             if (part.assignedTo && !part.user) {
                 part.user = part.assignedTo;
             }

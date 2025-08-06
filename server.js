@@ -5,10 +5,11 @@ const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const { router: userRouter, setDatabase: setUserDatabase } = require('./routes/userRoutes');
 const { router: partsRouter, setDatabase: setPartsDatabase } = require('./routes/partsRoutes');
+const { router: numberRouter } = require('./routes/numberRoutes');
 
 const app = express();
 
-// MongoDB Client
+
 const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017', {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
@@ -17,17 +18,31 @@ const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:2
     wtimeoutMS: 2500
 });
 
-// Middleware
+
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the root directory (HTML, CSS, JS)
-app.use(express.static('.'));
-app.use('/css', express.static('css'));
-app.use('/js', express.static('js'));
-app.use('/assets', express.static('assets'));
+// Middleware to set proper MIME types for static files
+const setContentType = (res, path) => {
+    if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+    } else if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+    }
+};
 
-// MongoDB Connection
+// Serve static files from the public directory with proper MIME types
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+    maxAge: '1d',
+    setHeaders: setContentType
+}));
+
+// Serve static files from the root directory (for backward compatibility)
+app.use(express.static(__dirname, {
+    setHeaders: setContentType
+}));
+
+
 async function connectDB() {
     try {
         await client.connect();
@@ -39,28 +54,29 @@ async function connectDB() {
     }
 }
 
-// Start server
+
 const PORT = process.env.PORT || 3000;
 
 async function startServer() {
     try {
         const db = await connectDB();
-        // Set database instance in routes
+        
         setUserDatabase(db);
         setPartsDatabase(db);
         
-        // Set up API routes
+        
         app.use('/api/users', userRouter);
         app.use('/api/parts', partsRouter);
+        app.use('/api', numberRouter);
         
-        // Serve the main HTML file for the root route
+        
         app.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, 'index.html'));
         });
         
-        // Handle any other routes by serving the main HTML file (SPA support)
+        
         app.get('*', (req, res) => {
-            // Only serve HTML for non-API routes
+            
             if (!req.path.startsWith('/api')) {
                 res.sendFile(path.join(__dirname, 'index.html'));
             } else {
@@ -79,5 +95,5 @@ async function startServer() {
     }
 }
 
-// Start the server
+
 startServer();

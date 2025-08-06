@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações - Gerenciador de invetário</title>
+    <link rel="stylesheet" href="../css/layout.css">
     <link rel="stylesheet" href="../css/styles.css">
 </head>
-<body>
+<body><main
     <div class="app-container">
-        <header class="app-header">
-            <!-- Navbar will be loaded here by navbar.js -->
-        </header>
-
+        <!-- Navbar Component (loaded via JavaScript) -->
+        <div id="navbar-container"></div>
         <main class="app-main">
             <div class="content">
                 <h1>Configurações do Sistema</h1>
@@ -104,5 +103,6 @@
     <script src="../js/navbar.js" type="module"></script>
     
     <script src="../js/configuracoes.js" type="module"></script>
+    <script src="../js/navbar-loader.js"></script>
 </body>
 </html>

@@ -4,31 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Gerenciador de invetário</title>
+    <link rel="stylesheet" href="../css/layout.css">
     <link rel="stylesheet" href="../css/styles.css">
 </head>
-<body>
+<body><main
     <div class="app-container">
-        <header class="app-header">
-            <nav class="main-nav">
-                <div class="logo">
-                    <!--<img src="assets/logo/Gerenciador de invetário.png" alt="Gerenciador de invetário"> -->
-                    <h1>Gerenciador de invetário</h1>
-                </div>
-                <ul class="nav-links">
-                    <li><a href="#" class="active">Dashboard</a></li>
-                    <li><a href="estoque.html">Estoque</a></li>
-                    <li><a href="catalogo.html">Catálogo</a></li>
-                    <li><a href="usuarios.html">Usuários</a></li>
-                    <li class="nav-item-with-icon">
-                        <a href="configuracoes.html">Configurações</a>
-                        <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
-                            <i id="themeIcon" class="bi"></i>
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-        </header>
-
+        <!-- Navbar Component (loaded via JavaScript) -->
+        <div id="navbar-container"></div>
         <main class="app-main">
             <div class="content">
                 <h1>Bem-vindo ao Gerenciador de invetário</h1>
@@ -65,5 +47,6 @@
     
     <!-- Dashboard Scripts -->
     <script src="../js/dashboard.js" type="module"></script>
+    <script src="../js/navbar-loader.js"></script>
 </body>
 </html>

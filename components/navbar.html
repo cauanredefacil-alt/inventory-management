@@ -1,17 +1,260 @@
-<nav class="main-nav">
-    <div class="logo">
-        <h1>Gerenciador de invetário</h1>
-    </div>
-    <ul class="nav-links">
-        <li><a href="dashboard.html" id="nav-dashboard">Dashboard</a></li>
-        <li><a href="estoque.html" id="nav-estoque">Estoque</a></li>
-        <li><a href="catalogo.html" id="nav-catalogo">Catálogo</a></li>
-        <li><a href="usuarios.html" id="nav-usuarios">Usuários</a></li>
-        <li class="nav-item-with-icon">
-            <a href="configuracoes.html" id="nav-configuracoes">Configurações</a>
-            <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
-                <i id="themeIcon" class="bi"></i>
-            </button>
-        </li>
-    </ul>
-</nav>
+<header class="app-header">
+    <nav class="main-nav">
+        <div class="logo">
+            <h1>Gerenciador de Inventário</h1>
+        </div>
+        
+        <button class="mobile-menu-toggle" aria-label="Menu" aria-expanded="false">
+            <i class="bi bi-list"></i>
+        </button>
+        
+        <ul class="nav-links">
+            <li><a href="/" id="nav-dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="/pages/estoque.html" id="nav-estoque"><i class="bi bi-box-seam"></i> Estoque</a></li>
+            <li><a href="/pages/numeros.html" id="nav-numeros"><i class="bi bi-collection"></i> Números</a></li>
+            <li><a href="/pages/usuarios.html" id="nav-usuarios"><i class="bi bi-people"></i> Usuários</a></li>
+            
+            <li class="nav-item-with-icon">
+                <a href="/pages/configuracoes.html" id="nav-configuracoes"><i class="bi bi-gear"></i> Configurações</a>
+                <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
+                    <i id="themeIcon" class="bi"></i>
+                </button>
+            </li>
+            
+            <li class="user-menu">
+                <button class="user-profile">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Usuário</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="user-dropdown">
+                    <li><a href="/perfil"><i class="bi bi-person"></i> Perfil</a></li>
+                    <li><a href="/configuracoes/conta"><i class="bi bi-gear"></i> Configurações</a></li>
+                    <li class="divider"></li>
+                    <li><a href="/sair" id="logout-btn"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+<style>
+    /* Navbar specific styles */
+    .app-header {
+        background-color: #2c3e50;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .main-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 2rem;
+        height: 64px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .logo h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .nav-links {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .nav-links a {
+        color: white;
+        text-decoration: none;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .nav-links a i {
+        font-size: 1.1rem;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .user-menu {
+        position: relative;
+        margin-left: 0.5rem;
+    }
+
+    .user-profile {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.2s;
+    }
+
+    .user-profile:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .user-dropdown {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        padding: 0.5rem 0;
+        display: none;
+        z-index: 1000;
+    }
+
+    .user-menu:hover .user-dropdown {
+        display: block;
+    }
+
+    .user-dropdown a {
+        color: #2c3e50 !important;
+        padding: 0.5rem 1rem !important;
+        white-space: nowrap;
+    }
+
+    .user-dropdown a:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    .divider {
+        height: 1px;
+        background-color: #e9ecef;
+        margin: 0.5rem 0;
+    }
+
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    @media (max-width: 992px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .nav-links {
+            display: none;
+            position: absolute;
+            top: 64px;
+            left: 0;
+            right: 0;
+            background: #2c3e50;
+            flex-direction: column;
+            padding: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links.active {
+            display: flex;
+        }
+
+        .nav-links li {
+            width: 100%;
+        }
+
+        .nav-links a {
+            border-radius: 0;
+            padding: 1rem 2rem !important;
+        }
+
+        .user-dropdown {
+            position: static;
+            display: none;
+            background: #34495e;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        .user-dropdown a {
+            padding-left: 3rem !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .user-menu:hover .user-dropdown {
+            display: none;
+        }
+
+        .user-dropdown.active {
+            display: block;
+        }
+    }
+</style>
+
+<script>
+    // Toggle mobile menu
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.querySelector('.mobile-menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        const userDropdown = document.querySelector('.user-dropdown');
+        const userProfile = document.querySelector('.user-profile');
+        
+        if (menuToggle && navLinks) {
+            menuToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                menuToggle.setAttribute('aria-expanded', 
+                    menuToggle.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'
+                );
+            });
+        }
+        
+        // Toggle user dropdown on mobile
+        if (userProfile && userDropdown) {
+            userProfile.addEventListener('click', function(e) {
+                if (window.innerWidth <= 992) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('active');
+                }
+            });
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (userDropdown && userProfile && !userProfile.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.remove('active');
+            }
+        });
+        
+        // Set active link based on current page
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            const linkPath = link.getAttribute('href').split('/').pop();
+            if (currentPage.includes(linkPath) && linkPath) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
