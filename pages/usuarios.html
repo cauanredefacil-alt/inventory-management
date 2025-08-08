@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuários - Gerenciador de invetário</title>
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body><main
+    <div class="app-container">
+        <!-- Navbar Component (loaded via JavaScript) -->
+        <div id="navbar-container"></div>
+        <main class="app-main">
+            <div class="content">
+                <div class="page-header">
+                    <h1>Gerenciamento de Usuários</h1>
+                    <button class="btn btn-primary" id="addUserBtn">
+                        + Adicionar Usuário
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="search-box">
+                        <input type="text" id="userSearch" placeholder="Buscar usuários...">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <div class="filter-group">
+                        <label for="roleFilter">Função:</label>
+                        <select id="roleFilter">
+                            <option value="all">Todas</option>
+                            <option value="admin">Administrador</option>
+                            <option value="manager">Gerente</option>
+                            <option value="user">Usuário</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Função</th>
+                                <th>Último Acesso</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button id="prevPage" disabled>Anterior</button>
+                    <span id="pageInfo">Página 1</span>
+                    <button id="nextPage">Próximo</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- Theme Script -->
+    <script src="../js/theme.js" type="module"></script>
+    
+    <!-- Navbar Script -->
+    <script src="../js/navbar.js" type="module"></script>
+    
+    <script src="../js/usuarios.js" type="module"></script>
+    <script src="../js/app.js" type="module"></script>
+    <script src="../js/navbar-loader.js"></script>
+</body>
+</html>

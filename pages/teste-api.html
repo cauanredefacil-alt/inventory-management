@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Peças</title>
+    <link rel="stylesheet" href="/public/css/layout.css">
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Navbar Script -->
+    <script type="module" src="/public/js/navbar-loader.js"></script>
+    <style>
+        :root {
+            --primary: #0066ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --card-bg: #ffffff;
+            --card-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+            --border-radius: 0.75rem;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #1f2937;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+        }
+        /* Stats Grid Layout */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .card-header .flex {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0052cc;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-outline:hover {
+            background-color: #f3f4f6;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            padding: 4px 8px;  /* Adiciona espaço ao redor do texto */
+            margin: -4px -8px;  /* Compensa o padding para não afetar o layout */
+            border-radius: 4px;  /* Borda arredondada para a área de hover */
+            transition: background-color 0.2s ease;  /* Suave transição de cor */
+        }
+        
+        .tooltip:hover {
+            background-color: rgba(0, 0, 0, 0.05);  /* Cor de fundo sutil ao passar o mouse */
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 280px;
+            background-color: #1f2937;
+            color: #f9fafb;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px 16px;
+            position: fixed;
+            z-index: 9999;
+            bottom: auto;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease-out, visibility 0.2s ease-out, top 0.1s ease-out, left 0.1s ease-out;
+            pointer-events: none;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+            white-space: normal;
+            word-wrap: break-word;
+            max-height: none;
+            overflow: visible;
+        }
+        
+        .tooltip .tooltip-text::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -8px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-spec {
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tooltip-spec i {
+            margin-right: 8px;
+            color: #60a5fa;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+        }
+
+        tr:hover {
+            background-color: #f9fafb;
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Status Badge Colors */
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-available {
+            background-color: #d1fae5;  /* Light green */
+            color: #065f46;  /* Dark green */
+        }
+        
+        .badge-maintenance {
+            background-color: #fef3c7;  /* Light orange */
+            color: #92400e;  /* Dark orange */
+        }
+        
+        .badge-in-use {
+            background-color: #dbeafe;  /* Light blue */
+            color: #1e40af;  /* Dark blue */
+        }
+        
+        .badge-defective {
+            background-color: #fee2e2;  /* Light red */
+            color: #991b1b;  /* Dark red */
+        }
+        
+        .badge-warning {
+            background-color: #fef3c7;  /* Light yellow */
+            color: #92400e;  /* Dark yellow */
+        }
+        
+        .badge-danger {
+            background-color: #fee2e2;  /* Light red */
+            color: #991b1b;  /* Dark red */
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            color: #1f2937;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .form-row .form-group {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            animation: modalFadeIn 0.3s;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .close-modal {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+            font-weight: bold;
+            background: none;
+            border: none;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        
+        .close-modal:hover {
+            color: #1f2937;
+        }
+        
+        .modal-body {
+            padding: 20px 24px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navbar Component (loaded via JavaScript) -->
+        <div id="navbar-container"></div>
+        
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Gerenciamento de Peças</h1>
+            </div>
+
+            <!-- Stats Cards -->
+            <style>
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 16px;
+                    margin-bottom: 24px;
+                }
+                .stats-card {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 16px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                }
+                .stats-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+                .stats-card .icon {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 12px;
+                }
+                .stats-card h3 {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    margin: 4px 0;
+                }
+                .stats-card p {
+                    font-size: 0.8rem;
+                    color: #6b7280;
+                    margin: 0;
+                }
+                .machine { background-color: #e0f2fe; color: #0369a1; }
+                .peripheral { background-color: #fef3c7; color: #92400e; }
+                .monitor { background-color: #dbeafe; color: #1e40af; }
+            </style>
+
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="icon machine">
+                        <i class="bi bi-pc-display"></i>
+                    </div>
+                    <h3 id="machine-count">0</h3>
+                    <p>Máquinas</p>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="icon peripheral">
+                        <i class="bi bi-keyboard"></i>
+                    </div>
+                    <h3 id="peripheral-count">0</h3>
+                    <p>Periféricos</p>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="icon monitor">
+                        <i class="bi bi-display"></i>
+                    </div>
+                    <h3 id="monitor-count">0</h3>
+                    <p>Monitores</p>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="icon" style="background-color: #fef2f2; color: #b91c1c;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h3 id="low-stock">0</h3>
+                    <p>Baixo Estoque</p>
+                </div>
+            </div>
+            </div>
+
+            <!-- Main Table Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex">
+                        <h2 class="card-title">
+                            <i class="bi bi-list-ul"></i>
+                            Lista de Peças
+                        </h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="refreshBtn" class="btn btn-outline btn-sm">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Atualizar
+                        </button>
+                        <button id="addPartBtn" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg"></i>
+                            Adicionar Peça
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Tipo</th>
+                                <th>Detalhes</th>
+                                <th>Estado</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsTableBody">
+                            <!-- Data will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="pagination">
+                    <div class="pagination-info" id="paginationInfo">Mostrando 0 de 0 itens</div>
+                    <div class="pagination-controls">
+                        <button id="prevPageBtn" class="btn btn-outline btn-sm" disabled>
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button id="nextPageBtn" class="btn btn-outline btn-sm" disabled>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        // Import Modal component
+        import Modal from '/public/js/components/modal.js';
+        
+        // Constants
+        const ITEMS_PER_PAGE = 10;
+        
+        // State
+        let partsData = [];
+        let currentPage = 1;
+        let totalItems = 0;
+        
+        // DOM Elements
+        const partsTableBody = document.getElementById('partsTableBody');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const addPartBtn = document.getElementById('addPartBtn');
+        
+        // Initialize modal
+        const addPartModal = new Modal({
+            title: 'Adicionar Nova Peça',
+            showCloseButton: true,
+            showFooter: true,
+            buttons: [
+                {
+                    text: 'Cancelar',
+                    class: 'btn btn-outline',
+                    onClick: (e, modal) => modal.close()
+                },
+                {
+                    text: 'Salvar',
+                    class: 'btn btn-primary',
+                    onClick: async (e, modal) => {
+                        const form = document.getElementById('addPartForm');
+                        const formData = new FormData(form);
+                        const partData = Object.fromEntries(formData.entries());
+                        
+                        // Add location to the part data if it's a machine
+                        if (partData.type === 'maquina') {
+                            partData.location = document.getElementById('partLocation').value || '';
+                        }
+                        
+                        try {
+                            const response = await fetch('/api/parts', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(partData),
+                                credentials: 'same-origin'
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error('Falha ao adicionar peça');
+                            }
+                            
+                            // Refresh the parts list
+                            await fetchParts();
+                            modal.close();
+                            form.reset();
+                            
+                            // Show success message
+                            alert('Peça adicionada com sucesso!');
+                        } catch (error) {
+                            console.error('Erro ao adicionar peça:', error);
+                            alert('Erro ao adicionar peça. Por favor, tente novamente.');
+                        }
+                    }
+                }
+            ],
+            content: `
+                <form id="addPartForm" class="form">
+                    <div class="form-group">
+                        <label for="partName">Nome da Peça *</label>
+                        <input type="text" id="partName" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="partType">Tipo</label>
+                            <select id="partType" name="type" class="form-control">
+                                <option value="">Selecione um tipo</option>
+                                <option value="maquina">Máquina</option>
+                                <option value="periferico">Periférico</option>
+                                <option value="monitor">Monitor</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="partStatus">Status</label>
+                            <select id="partStatus" name="status" class="form-control">
+                                <option value="disponivel">Disponível</option>
+                                <option value="em_manutencao">Em Manutenção</option>
+                                <option value="em_uso">Em Uso</option>
+                                <option value="defeito">Com Defeito</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Máquina specific fields (initially hidden) -->
+                    <div id="maquinaFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="partMachineId">ID/Número de Série *</label>
+                                <input type="text" id="partMachineId" name="machineId" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="partProcessor">Processador *</label>
+                                <input type="text" id="partProcessor" name="processor" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="partRam">Memória RAM *</label>
+                                <select id="partRam" name="ram" class="form-control" required>
+                                    <option value="">Selecione a memória RAM</option>
+                                    <option value="4GB">4GB</option>
+                                    <option value="8GB">8GB</option>
+                                    <option value="12GB">12GB</option>
+                                    <option value="16GB">16GB</option>
+                                    <option value="24GB">24GB</option>
+                                    <option value="32GB">32GB</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="partStorage">Armazenamento *</label>
+                                <select id="partStorage" name="storage" class="form-control" required>
+                                    <option value="">Selecione o armazenamento</option>
+                                    <option value="120GB HD">120GB HD</option>
+                                    <option value="120GB SSD">120GB SSD</option>
+                                    <option value="240GB SSD">240GB SSD</option>
+                                    <option value="250GB HD">250GB HD</option>
+                                    <option value="480GB SSD">480GB SSD</option>
+                                    <option value="500GB HD">500GB HD</option>
+                                    <option value="500GB SSD">500GB SSD</option>
+                                    <option value="1TB HD">1TB HD</option>
+                                    <option value="1TB SSD">1TB SSD</option>
+                                    <option value="2TB HD">2TB HD</option>
+                                    <option value="2TB SSD">2TB SSD</option>
+                                </select>
+                            </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="partLocation">Localização *</label>
+                                <input type="text" id="partLocation" name="location" class="form-control" placeholder="Ex.: Setor X, Sala Y">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="partUser">Usuário Atual (opcional)</label>
+                        <input type="text" id="partUser" name="user" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="partDetails">Detalhes</label>
+                        <textarea id="partDetails" name="details" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            `
+        });
+        
+        // Stats Elements
+        const machineCountEl = document.getElementById('machine-count');
+        const peripheralCountEl = document.getElementById('peripheral-count');
+        const monitorCountEl = document.getElementById('monitor-count');
+        const lowStockEl = document.getElementById('low-stock');
+        
+        // Create edit modal
+        const editPartModal = new Modal({
+            title: 'Editar Peça',
+            showCloseButton: true,
+            showFooter: true,
+            buttons: [
+                {
+                    text: 'Cancelar',
+                    class: 'btn btn-outline',
+                    onClick: (e, modal) => modal.close()
+                },
+                {
+                    text: 'Salvar Alterações',
+                    class: 'btn btn-primary',
+                    onClick: async (e, modal) => {
+                        const form = document.getElementById('editPartForm');
+                        const formData = new FormData(form);
+                        const partData = Object.fromEntries(formData.entries());
+                        const partId = form.dataset.partId;
+                        
+                        try {
+                            const response = await fetch(`/api/parts/${partId}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(partData),
+                                credentials: 'same-origin'
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error('Falha ao atualizar peça');
+                            }
+                            
+                            // Refresh the parts list
+                            await fetchParts();
+                            modal.close();
+                            
+                            // Show success message
+                            alert('Peça atualizada com sucesso!');
+                        } catch (error) {
+                            console.error('Erro ao atualizar peça:', error);
+                            alert('Erro ao atualizar peça. Por favor, tente novamente.');
+                        }
+                    }
+                }
+            ],
+            content: `
+                <form id="editPartForm" class="form">
+                    <div class="form-group">
+                        <label for="editPartName">Nome da Peça *</label>
+                        <input type="text" id="editPartName" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPartType">Tipo</label>
+                            <select id="editPartType" name="type" class="form-control">
+                                <option value="">Selecione um tipo</option>
+                                <option value="maquina">Máquina</option>
+                                <option value="periferico">Periférico</option>
+                                <option value="monitor">Monitor</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editPartStatus">Status</label>
+                            <select id="editPartStatus" name="status" class="form-control">
+                                <option value="disponivel">Disponível</option>
+                                <option value="em_manutencao">Em Manutenção</option>
+                                <option value="em_uso">Em Uso</option>
+                                <option value="defeito">Com Defeito</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Máquina specific fields (initially hidden) -->
+                    <div id="editMaquinaFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editPartMachineId">ID/Número de Série *</label>
+                                <input type="text" id="editPartMachineId" name="machineId" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="editPartProcessor">Processador *</label>
+                                <input type="text" id="editPartProcessor" name="processor" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editPartRam">Memória RAM *</label>
+                                <select id="editPartRam" name="ram" class="form-control" required>
+                                    <option value="">Selecione a memória RAM</option>
+                                    <option value="4GB">4GB</option>
+                                    <option value="8GB">8GB</option>
+                                    <option value="12GB">12GB</option>
+                                    <option value="16GB">16GB</option>
+                                    <option value="24GB">24GB</option>
+                                    <option value="32GB">32GB</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editPartStorage">Armazenamento *</label>
+                                <select id="editPartStorage" name="storage" class="form-control" required>
+                                    <option value="">Selecione o armazenamento</option>
+                                    <option value="120GB HD">120GB HD</option>
+                                    <option value="120GB SSD">120GB SSD</option>
+                                    <option value="240GB SSD">240GB SSD</option>
+                                    <option value="250GB HD">250GB HD</option>
+                                    <option value="480GB SSD">480GB SSD</option>
+                                    <option value="500GB HD">500GB HD</option>
+                                    <option value="500GB SSD">500GB SSD</option>
+                                    <option value="1TB HD">1TB HD</option>
+                                    <option value="1TB SSD">1TB SSD</option>
+                                    <option value="2TB HD">2TB HD</option>
+                                    <option value="2TB SSD">2TB SSD</option>
+                                </select>
+                            </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="editPartLocation">Localização *</label>
+                                <input type="text" id="editPartLocation" name="location" class="form-control" placeholder="Ex.: Setor X, Sala Y">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editPartUser">Usuário Atual (opcional)</label>
+                        <input type="text" id="editPartUser" name="user" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editPartDetails">Detalhes</label>
+                        <textarea id="editPartDetails" name="details" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            `
+        });
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOM fully loaded');
+            
+            // Set up event listeners
+            prevPageBtn.addEventListener('click', () => changePage(currentPage - 1));
+            nextPageBtn.addEventListener('click', () => changePage(currentPage + 1));
+            refreshBtn.addEventListener('click', fetchParts);
+            
+            // Add click event for Add Part button
+            addPartBtn.addEventListener('click', () => {
+                addPartModal.open();
+                // Reset and hide máquina fields when opening modal
+                document.getElementById('maquinaFields').style.display = 'none';
+            });
+            
+            // Add change event for tipo select
+            document.addEventListener('change', (e) => {
+                if (e.target && e.target.id === 'partType') {
+                    const maquinaFields = document.getElementById('maquinaFields');
+                    if (e.target.value === 'maquina') {
+                        maquinaFields.style.display = 'block';
+                    } else {
+                        maquinaFields.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Initial data load
+            await fetchParts();
+        });
+        
+        // Fetch parts from the API
+        async function fetchParts() {
+            console.log('Fetching parts...');
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/api/parts', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Parts data received:', data);
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('Expected an array of parts');
+                }
+                
+                // Update the application state
+                partsData = data;
+                totalItems = data.length;
+                currentPage = 1;
+                
+                // Update the UI
+                updateStats();
+                renderTable();
+                updatePagination();
+                
+            } catch (error) {
+                console.error('Error loading parts:', error);
+                alert(`Erro ao carregar peças: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Update statistics cards
+        function updateStats() {
+            // Contagem por tipo
+            const machines = partsData.filter(part => part.type === 'maquina').length;
+            const peripherals = partsData.filter(part => part.type === 'periferico').length;
+            const monitors = partsData.filter(part => part.type === 'monitor').length;
+            const lowStock = partsData.filter(part => part.quantity > 0 && part.quantity < 10).length;
+            
+            // Atualiza os elementos HTML
+            machineCountEl.textContent = machines;
+            peripheralCountEl.textContent = peripherals;
+            monitorCountEl.textContent = monitors;
+            lowStockEl.textContent = lowStock;
+            
+            // Adiciona animação ao atualizar os valores
+            [machineCountEl, peripheralCountEl, monitorCountEl, lowStockEl].forEach(el => {
+                el.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    el.style.transform = 'scale(1)';
+                }, 150);
+            });
+        }
+        
+        // Render the table with paginated data
+        function renderTable() {
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const paginatedItems = partsData.slice(start, end);
+            
+            // Clear the table body
+            partsTableBody.innerHTML = '';
+            
+            if (paginatedItems.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="6" class="py-4 text-center text-gray-500">
+                        Nenhuma peça encontrada
+                    </td>
+                `;
+                partsTableBody.appendChild(row);
+                return;
+            }
+            
+            // Add rows for each part
+            paginatedItems.forEach(part => {
+                const row = document.createElement('tr');
+                const status = part.status || 'N/A';
+                // Check if it's a machine and has any specs
+                const hasSpecs = part.type === 'maquina' && (part.processor || part.ram || part.storage);
+                
+                const tooltipId = `tooltip-${part._id || Math.random().toString(36).substr(2, 9)}`;
+                const machineSpecs = hasSpecs ? 
+                    `<span class="tooltip" data-tooltip-id="${tooltipId}" onmouseenter="positionTooltip(this, '${tooltipId}')">
+                        ${part.name}
+                    </span>
+                    <div id="${tooltipId}" class="tooltip-text" style="display: none;">
+                        ${part.processor ? `
+                            <div class="tooltip-spec">
+                                <i class="bi bi-cpu"></i>
+                                <span>${part.processor}</span>
+                            </div>
+                        ` : ''}
+                        ${part.ram ? `
+                            <div class="tooltip-spec">
+                                <i class="bi bi-memory"></i>
+                                <span>${part.ram} RAM</span>
+                            </div>
+                        ` : ''}
+                        ${part.storage ? `
+                            <div class="tooltip-spec">
+                                <i class="bi bi-hdd"></i>
+                                <span>${part.storage}</span>
+                            </div>
+                        ` : ''}
+                        ${part.location ? `
+                            <div class="tooltip-spec">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>${part.location}</span>
+                            </div>
+                        ` : ''}
+                    </div>` : part.name;
+
+                row.innerHTML = `
+                    <td>${machineSpecs}</td>
+                    <td>${part.user || '-'}</td>
+                    <td>${part.type || '-'}</td>
+                    <td>${part.machineId || '-'}</td>
+                    <td><span class="badge ${getStatusClass(part.status)}">${part.status || 'N/A'}</span></td>
+                    <td class="space-x-2">
+                        <button class="btn btn-outline btn-sm" onclick="editPart('${part._id}')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="deletePart('${part._id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                partsTableBody.appendChild(row);
+            });
+        }
+        
+        // Update pagination controls
+        function updatePagination() {
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            
+            // Update pagination info
+            const startItem = totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+            const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+            paginationInfo.textContent = `Mostrando ${startItem} a ${endItem} de ${totalItems} itens`;
+            
+            // Update button states
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage >= totalPages;
+        }
+        
+        // Change the current page
+        function changePage(newPage) {
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            
+            if (newPage < 1) newPage = 1;
+            if (newPage > totalPages) newPage = totalPages;
+            
+            if (newPage !== currentPage) {
+                currentPage = newPage;
+                renderTable();
+                updatePagination();
+                
+                // Scroll to top of the table
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        // Position tooltip relative to the hovered element
+        window.positionTooltip = (element, tooltipId) => {
+            const tooltip = document.getElementById(tooltipId);
+            if (!tooltip) return;
+            
+            // Show the tooltip
+            tooltip.style.display = 'block';
+            tooltip.style.visibility = 'visible';
+            tooltip.style.opacity = '1';
+            
+            // Get the position of the hovered element
+            const rect = element.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            
+            // Calculate tooltip position
+            let top = rect.top + scrollTop - tooltip.offsetHeight - 10;
+            let left = rect.left + scrollLeft + (rect.width / 2) - (tooltip.offsetWidth / 2);
+            
+            // Adjust if tooltip would go off-screen
+            if (left < 10) left = 10;
+            if (left + tooltip.offsetWidth > window.innerWidth - 10) {
+                left = window.innerWidth - tooltip.offsetWidth - 10;
+            }
+            
+            // Position the tooltip
+            tooltip.style.top = `${Math.max(10, top)}px`;
+            tooltip.style.left = `${left}px`;
+            
+            // Hide tooltip when mouse leaves the element
+            const hideTooltip = () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.display = 'none';
+                element.removeEventListener('mouseleave', hideTooltip);
+            };
+            
+            element.addEventListener('mouseleave', hideTooltip);
+        };
+        
+        // Helper function to get status class based on status text
+        function getStatusClass(status) {
+            if (!status) return 'badge-warning';
+            
+            // Convert status to lowercase for case-insensitive comparison
+            const statusLower = status.toLowerCase().trim();
+            
+            // Map all possible status values to their corresponding classes
+            const statusMap = {
+                // Available/Disponível
+                'disponível': 'badge-available',
+                'disponivel': 'badge-available',
+                'available': 'badge-available',
+                
+                // In Use/Em Uso
+                'em uso': 'badge-in-use',
+                'em_uso': 'badge-in-use',
+                'in use': 'badge-in-use',
+                'in_use': 'badge-in-use',
+                'em uso': 'badge-in-use',
+                
+                // Maintenance/Manutenção
+                'manutenção': 'badge-maintenance',
+                'manutencao': 'badge-maintenance',
+                'maintenance': 'badge-maintenance',
+                
+                // Defective/Com Defeito
+                'com defeito': 'badge-defective',
+                'defeito': 'badge-defective',
+                'defective': 'badge-defective',
+                'com_defeito': 'badge-defective'
+            };
+            
+            return statusMap[statusLower] || 'badge-warning';
+        }
+        
+        // Show/hide loading state
+        function showLoading(show) {
+            // You can implement a loading spinner here if needed
+            console.log('Loading:', show);
+        }
+        
+        // Function to fetch part details by ID
+        async function fetchPartById(id) {
+            try {
+                const response = await fetch(`/api/parts/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching part:', error);
+                throw error;
+            }
+        }
+
+        // Edit part handler
+        window.editPart = async (id) => {
+            try {
+                // Fetch part data
+                const part = await fetchPartById(id);
+                
+                // Populate form fields
+                const form = document.getElementById('editPartForm');
+                form.dataset.partId = id;
+                
+                // Basic fields
+                document.getElementById('editPartName').value = part.name || '';
+                document.getElementById('editPartType').value = part.type || '';
+                document.getElementById('editPartStatus').value = part.status || 'disponivel';
+                document.getElementById('editPartUser').value = part.user || '';
+                document.getElementById('editPartDetails').value = part.details || '';
+                
+                // Máquina specific fields
+                const maquinaFields = document.getElementById('editMaquinaFields');
+                const isMaquina = part.type === 'maquina';
+                maquinaFields.style.display = isMaquina ? 'block' : 'none';
+                
+                if (isMaquina) {
+                    document.getElementById('editPartMachineId').value = part.machineId || '';
+                    document.getElementById('editPartProcessor').value = part.processor || '';
+                    document.getElementById('editPartRam').value = part.ram || '';
+                    document.getElementById('editPartStorage').value = part.storage || '';
+                    document.getElementById('editPartLocation').value = part.location || '';
+                }
+                
+                // Show the modal
+                editPartModal.open();
+                
+                // Add change event for tipo select in edit modal
+                document.getElementById('editPartType').addEventListener('change', function() {
+                    const maquinaFields = document.getElementById('editMaquinaFields');
+                    if (this.value === 'maquina') {
+                        maquinaFields.style.display = 'block';
+                    } else {
+                        maquinaFields.style.display = 'none';
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error editing part:', error);
+                alert('Erro ao carregar os dados da peça. Por favor, tente novamente.');
+            }
+        };
+        
+        window.deletePart = async (id) => {
+            if (confirm('Tem certeza que deseja excluir esta peça?')) {
+                try {
+                    const response = await fetch(`/api/parts/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Falha ao excluir peça');
+                    }
+
+                    // Refresh the parts list
+                    await fetchParts();
+                    alert('Peça excluída com sucesso!');
+                } catch (error) {
+                    console.error('Error deleting part:', error);
+                    alert('Erro ao excluir a peça. Por favor, tente novamente.');
+                }
+            }
+        };        
+    </script>
+</body>
+</html>
