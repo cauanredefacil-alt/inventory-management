@@ -19,8 +19,24 @@ const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:2
 });
 
 
-app.use(cors());
+// Enable CORS with specific options
+const corsOptions = {
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+
+// Parse JSON bodies
 app.use(express.json());
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+    next();
+});
 
 // Middleware to set proper MIME types for static files
 const setContentType = (res, path) => {
@@ -65,9 +81,20 @@ async function startServer() {
         setPartsDatabase(db);
         
         
+        // API Routes
         app.use('/api/users', userRouter);
         app.use('/api/parts', partsRouter);
-        app.use('/api', numberRouter);
+        app.use('/api/numbers', numberRouter); // Changed from '/api' to be more specific
+        
+        // Test route
+        app.get('/api/test', (req, res) => {
+            console.log('Test endpoint hit');
+            res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
+        });
+        
+        console.log('Registered routes:');
+        console.log('- GET /api/parts');
+        console.log('- GET /api/test');
         
         
         app.get('/', (req, res) => {

@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
 
-
 let db;
 
 
@@ -35,6 +34,40 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get parts statistics
+router.get('/stats', async (req, res) => {
+    try {
+        const collection = db.collection('parts');
+        
+        // Get total count
+        const total = await collection.countDocuments();
+        
+        // Get counts by status
+        const available = await collection.countDocuments({ status: { $in: ['disponivel', 'disponível', 'available'] } });
+        const inUse = await collection.countDocuments({ status: { $in: ['em uso', 'em_uso', 'in use', 'in_use'] } });
+        const maintenance = await collection.countDocuments({ status: { $in: ['manutencao', 'manutenção', 'maintenance'] } });
+        const defective = await collection.countDocuments({ status: { $in: ['com defeito', 'defeito', 'defective', 'com_defeito'] } });
+        
+        res.json({
+            success: true,
+            data: {
+                total,
+                available,
+                inUse,
+                maintenance,
+                defective
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching parts statistics:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to fetch parts statistics',
+            error: error.message 
+        });
+    }
+});
+
 // Create new part
 router.post('/', async (req, res) => {
     const { name, description, quantity, category, metadata } = req.body;
@@ -56,7 +89,14 @@ router.post('/', async (req, res) => {
             quantity: parseInt(quantity) || 0,
             category: category || 'Geral',
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            // Add new fields
+            processor: req.body.processor || '',
+            ram: req.body.ram || '',
+            storage: req.body.storage || '',
+            location: req.body.location || '',
+            user: req.body.user || '',
+            machineId: req.body.machineId || ''
         };
 
         // Add metadata if provided
@@ -65,6 +105,14 @@ router.post('/', async (req, res) => {
             
             // Add direct fields for easier querying
             if (metadata.type) partData.type = metadata.type;
+            
+            // Ensure new fields are included in metadata if not already set
+            if (!partData.processor && metadata.processor) partData.processor = metadata.processor;
+            if (!partData.ram && metadata.ram) partData.ram = metadata.ram;
+            if (!partData.storage && metadata.storage) partData.storage = metadata.storage;
+            if (!partData.location && metadata.location) partData.location = metadata.location;
+            if (!partData.user && metadata.user) partData.user = metadata.user;
+            if (!partData.machineId && metadata.machineId) partData.machineId = metadata.machineId;
             if (metadata.status) partData.status = metadata.status;
             if (metadata.user) partData.assignedTo = metadata.user;
             
@@ -99,12 +147,132 @@ router.post('/', async (req, res) => {
         res.status(201).json(newPart);
     } catch (error) {
         console.error('Error creating part:', error);
-        res.status(400).json({ 
-            message: 'Failed to create part',
-            error: error.message 
-        });
+        res.status(500).json({ message: error.message });
     }
 });
+
+// Update an existing part
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, description, quantity, category, metadata } = req.body;
+    
+    try {
+        // Validate ID
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid part ID' });
+        }
+
+        // Log the incoming request for debugging
+        console.log(`Updating part ${id} with data:`, {
+            name,
+            description,
+            quantity,
+            category,
+            metadata
+        });
+
+        // Build the update object
+        const updateData = {
+            $set: {
+                ...(name && { name }),
+                ...(description && { description }),
+                ...(quantity && { quantity: parseInt(quantity) }),
+                ...(category && { category }),
+                ...(req.body.processor !== undefined && { processor: req.body.processor, 'metadata.specs.processor': req.body.processor }),
+                ...(req.body.ram !== undefined && { ram: req.body.ram, 'metadata.specs.ram': req.body.ram }),
+                ...(req.body.storage !== undefined && { storage: req.body.storage, 'metadata.specs.storage': req.body.storage }),
+                ...(req.body.location !== undefined && { location: req.body.location, 'metadata.location': req.body.location }),
+                ...(req.body.user !== undefined && { user: req.body.user, 'metadata.user': req.body.user }),
+                ...(req.body.machineId !== undefined && { 
+                    machineId: req.body.machineId,
+                    'metadata.machineId': req.body.machineId 
+                }),
+                updatedAt: new Date()
+            }
+        };
+
+        // Add metadata if provided
+        if (metadata && typeof metadata === 'object') {
+            updateData.$set.metadata = metadata;
+            
+            // Update direct fields for easier querying
+            if (metadata.type) updateData.$set.type = metadata.type;
+            if (metadata.status) updateData.$set.status = metadata.status;
+            if (metadata.user) updateData.$set.assignedTo = metadata.user;
+            
+            // Update machine-specific fields
+            if (metadata.type === 'maquina') {
+                if (metadata.specs) updateData.$set.specs = metadata.specs;
+                if (metadata.machineId !== undefined) {
+                    // Set machineId at the root level - this is the key fix
+                    updateData.$set.machineId = metadata.machineId;
+                }
+            }
+            
+            // Update peripheral-specific fields
+            if (metadata.type === 'periferico') {
+                if (metadata.brand) updateData.$set.brand = metadata.brand;
+                if (metadata.model) updateData.$set.model = metadata.model;
+                if (metadata.peripheralType) updateData.$set.peripheralType = metadata.peripheralType;
+            }
+            
+            // Update monitor-specific fields
+            if (metadata.type === 'monitor') {
+                if (metadata.brand) updateData.$set.brand = metadata.brand;
+                if (metadata.model) updateData.$set.model = metadata.model;
+                if (metadata.screenSize) updateData.$set.screenSize = metadata.screenSize;
+                if (metadata.resolution) updateData.$set.resolution = metadata.resolution;
+            }
+        }
+
+        console.log('Updating part with data:', updateData);
+        const result = await db.collection('parts').updateOne(
+            { _id: new ObjectId(id) },
+            updateData
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Part not found' });
+        }
+        
+        const updatedPart = await db.collection('parts').findOne({ _id: new ObjectId(id) });
+        console.log('Successfully updated part:', updatedPart);
+        
+        res.json(updatedPart);
+    } catch (error) {
+        console.error('Error updating part:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Delete a part
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        // Validate ID
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid part ID' });
+        }
+        
+        console.log(`Deleting part ${id}`);
+        
+        const result = await db.collection('parts').deleteOne({ _id: new ObjectId(id) });
+        
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: 'Part not found' });
+        }
+        
+        console.log(`Successfully deleted part ${id}`);
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting part:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Export the router with the setDatabase function
+module.exports = { router, setDatabase };
 
 // Get single part
 router.get('/:id', async (req, res) => {

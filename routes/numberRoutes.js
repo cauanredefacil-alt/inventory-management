@@ -33,7 +33,40 @@ const handleErrors = (res, error) => {
 
 // ========== Chip Routes ==========
 
-// Get all chips
+// Get chip statistics (count by status)
+router.get('/chips/stats', async (req, res) => {
+    try {
+        console.log('Fetching chip statistics...');
+        
+        // Get counts for each status
+        const [total, ativos, aguardandoAnalise, recargaPendente] = await Promise.all([
+            Chip.countDocuments({}),
+            Chip.countDocuments({ 
+                $or: [
+                    { status: 'Ativo' },
+                    { status: 'Ativo/Aracaju' }
+                ]
+            }),
+            Chip.countDocuments({ status: 'Aguardando Análise' }),
+            Chip.countDocuments({ status: 'Recarga Pendente' })
+        ]);
+        
+        res.json({
+            success: true,
+            data: {
+                total,
+                ativos,
+                aguardandoAnalise,
+                recargaPendente
+            }
+        });
+    } catch (error) {
+        console.error('Error in /chips/stats endpoint:', error);
+        handleErrors(res, error);
+    }
+});
+
+// Get all chips with pagination
 router.get('/chips', async (req, res) => {
     try {
         console.log('Fetching chips from database...');
@@ -46,9 +79,33 @@ router.get('/chips', async (req, res) => {
             });
         }
         
-        const chips = await Chip.find({}).sort({ dataAtivacao: -1 });
-        console.log(`Found ${chips.length} chips`);
-        res.json({ success: true, data: chips });
+        // Get pagination parameters from query string, default to page 1, 10 items per page
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        
+        // Get total count for pagination info
+        const total = await Chip.countDocuments({});
+        const totalPages = Math.ceil(total / limit);
+        
+        // Get paginated results
+        const chips = await Chip.find({})
+            .sort({ dataAtivacao: -1 })
+            .skip(skip)
+            .limit(limit);
+            
+        console.log(`Found ${chips.length} chips on page ${page} of ${totalPages}`);
+        
+        res.json({ 
+            success: true, 
+            data: chips,
+            pagination: {
+                total,
+                totalPages,
+                currentPage: page,
+                limit
+            }
+        });
     } catch (error) {
         console.error('Error in /chips endpoint:', error);
         handleErrors(res, error);
@@ -73,7 +130,7 @@ router.post('/chips', [
     body('numero').notEmpty().withMessage('Número é obrigatório'),
     body('operadora').notEmpty().withMessage('Operadora é obrigatória'),
     body('status').notEmpty().withMessage('Status é obrigatório'),
-    body('ip').optional({ checkFalsy: true }).isIP().withMessage('IP inválido'),
+    body('ip').optional({ checkFalsy: true }).trim(),
     body('consultor').optional({ checkFalsy: true }).trim()
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -132,6 +189,21 @@ router.post('/chips', [
 // Update a chip
 router.put('/chips/:id', async (req, res) => {
     try {
+        // First, check if the number already exists for a different chip
+        if (req.body.numero) {
+            const existingChip = await Chip.findOne({ 
+                numero: req.body.numero,
+                _id: { $ne: req.params.id } // Exclude current chip from the check
+            });
+            
+            if (existingChip) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Já existe outro chip com este número' 
+                });
+            }
+        }
+
         const updatedChip = await Chip.findByIdAndUpdate(
             req.params.id,
             { $set: req.body },
