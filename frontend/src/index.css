@@ -1,0 +1,255 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 220 13% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 18%;
+    --primary: 210 29% 24%; /* #2B3D4F */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 220 13% 18%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 210 29% 24% / 0.1; /* #2B3D4F com 10% de opacidade */
+    --accent-foreground: 220 13% 18%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 210 20% 31%; /* #405060 */
+    --radius: 0.5rem;
+    --status-available: 122 39% 49%;
+    --status-available-foreground: 0 0% 100%;
+    --status-in-use: 207 90% 54%;
+    --status-in-use-foreground: 0 0% 100%;
+    --status-maintenance: 45 93% 47%;
+    --status-maintenance-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 220 13% 9%;
+    --foreground: 210 20% 96%;
+    --card: 220 13% 11%;
+    --card-foreground: 210 20% 96%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 24 100% 50%; /* #FF7601 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 24 100% 50% / 0.1; /* #FF7601 com 10% de opacidade */
+    --secondary-foreground: 210 20% 96%;
+    --muted: 220 13% 15%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 24 100% 50% / 0.1; /* #FF7601 com 10% de opacidade */
+    --accent-foreground: 210 20% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 20%;
+    --input: 220 13% 20%;
+    --ring: 24 100% 50%; /* #FF7601 */
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Estilização dos inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"],
+  input[type="week"],
+  input[type="file"],
+  select,
+  textarea,
+  .input {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    --tw-ring-offset-width: 2px;
+    --tw-ring-color: hsl(var(--ring) / 0.5);
+    transition-property: box-shadow, transform;
+    transition-duration: 200ms;
+  }
+  
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="tel"],
+  .dark input[type="url"],
+  .dark input[type="search"],
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="month"],
+  .dark input[type="time"],
+  .dark input[type="week"],
+  .dark input[type="file"],
+  .dark select,
+  .dark textarea,
+  .dark .input {
+    --tw-ring-color: hsl(var(--ring) / 0.5);
+  }
+  
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="tel"]:focus,
+  input[type="url"]:focus,
+  input[type="search"]:focus,
+  input[type="date"]:focus,
+  input[type="datetime-local"]:focus,
+  input[type="month"]:focus,
+  input[type="time"]:focus,
+  input[type="week"]:focus,
+  input[type="file"]:focus,
+  select:focus,
+  textarea:focus,
+  .input:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+    border-color: transparent;
+  }
+  
+  /* Foco dos botões da navbar (sem ring do Tailwind) */
+  .nav-button:focus, .nav-button:focus-visible {
+    outline: 2px solid #2B3D4F;
+    outline-offset: 2px;
+  }
+  .dark .nav-button:focus, .dark .nav-button:focus-visible {
+    outline-color: #FF7601;
+  }
+}
+
+/* Custom styles */
+.bg-gradient-card {
+  background: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 98%));
+}
+
+.dark .bg-gradient-card {
+  background: linear-gradient(145deg, hsl(220 13% 11%), hsl(220 13% 13%));
+}
+
+.shadow-card {
+  box-shadow: 0 2px 10px -2px hsl(220 13% 18% / 0.1);
+}
+
+.shadow-hover {
+  box-shadow: 0 4px 20px -4px hsl(220 13% 18% / 0.15);
+}
+
+.shadow-primary {
+  box-shadow: 0 4px 16px -4px hsl(122 39% 49% / 0.3);
+}
+
+.dark .shadow-card {
+  box-shadow: 0 2px 10px -2px hsl(0 0% 0% / 0.2);
+}
+
+.dark .shadow-hover {
+  box-shadow: 0 4px 20px -4px hsl(0 0% 0% / 0.3);
+}
+
+.dark .shadow-primary {
+  box-shadow: 0 4px 16px -4px hsl(122 39% 49% / 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.2s ease-out;
+}
+
+/* Custom components */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+.status-available {
+  background-color: hsl(var(--status-available));
+  color: hsl(var(--status-available-foreground));
+}
+
+.status-in-use {
+  background-color: hsl(var(--status-in-use));
+  color: hsl(var(--status-in-use-foreground));
+}
+
+.status-maintenance {
+  background-color: hsl(var(--status-maintenance));
+  color: hsl(var(--status-maintenance-foreground));
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground) / 0.2);
+}
+
+/* Tooltip animation */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-tooltip-in {
+  animation: tooltip-in 0.1s ease-out;
+}
