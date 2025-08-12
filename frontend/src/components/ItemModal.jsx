@@ -23,9 +23,26 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
   // Atualiza o formulário quando um item é passado (modo de edição)
   useEffect(() => {
     if (item) {
+      // Normalize legacy/pt types to current options and allow choosing when invalid/empty
+      const mapType = (t) => {
+        switch ((t || '').toLowerCase()) {
+          case 'máquina':
+          case 'maquina':
+            return 'machine';
+          case 'periférico':
+          case 'periferico':
+            return 'peripheral';
+          default:
+            return t || '';
+        }
+      };
+      const allowedTypes = ['machine', 'monitor', 'peripheral'];
+      const normalizedType = mapType(item.type);
+      const finalType = allowedTypes.includes(normalizedType) ? normalizedType : '';
+
       setFormData({
         name: item.name || '',
-        type: item.type || 'machine',
+        type: finalType,
         status: item.status || 'available',
         location: item.location || '',
         user: item.user || '',
@@ -137,7 +154,7 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
               <Select
                 value={formData.type}
                 onValueChange={(value) => handleSelectChange('type', value)}
-                disabled={!!item} // Não permite alterar a categoria ao editar
+                disabled={!!item && ['machine','monitor','peripheral'].includes(formData.type)} // permite alterar se estiver vazio ou inválido
                 required
               >
                 <SelectTrigger>

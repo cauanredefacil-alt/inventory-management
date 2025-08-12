@@ -56,7 +56,6 @@ const AddChipModal = ({ open, onOpenChange, onSave, chip }) => {
     if (!/^\d{1,3}$/.test(form.ip)) e.ip = 'IP deve conter de 1 a 3 dígitos';
     if (!form.number) e.number = 'Número é obrigatório';
     if (!form.carrier) e.carrier = 'Operadora é obrigatória';
-    if (!form.consultant) e.consultant = 'Consultor é obrigatório';
     if (!form.status) e.status = 'Status é obrigatório';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -65,7 +64,12 @@ const AddChipModal = ({ open, onOpenChange, onSave, chip }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    onSave?.({ ...form });
+    const payload = {
+      ...form,
+      number: String(form.number || '').replace(/\D/g, ''),
+      consultant: form.consultant && form.consultant.trim() ? form.consultant.trim() : null,
+    };
+    onSave?.(payload);
     onOpenChange(false);
   };
 
@@ -115,7 +119,7 @@ const AddChipModal = ({ open, onOpenChange, onSave, chip }) => {
                 {errors.carrier && <p className="text-xs text-red-600 mt-1">{errors.carrier}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Consultor *</label>
+                <label className="block text-sm font-medium mb-1">Consultor</label>
                 <Input value={form.consultant} onChange={(e) => setField('consultant', e.target.value)} placeholder="Nome do consultor" />
                 {errors.consultant && <p className="text-xs text-red-600 mt-1">{errors.consultant}</p>}
               </div>
@@ -127,6 +131,7 @@ const AddChipModal = ({ open, onOpenChange, onSave, chip }) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Disponível">Disponível</SelectItem>
                     <SelectItem value="Ativo/Aracaju">Ativo/Aracaju</SelectItem>
                     <SelectItem value="Aguardando Análise">Aguardando Análise</SelectItem>
                     <SelectItem value="Banido">Banido</SelectItem>

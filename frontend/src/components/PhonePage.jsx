@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -22,65 +22,110 @@ const PhonePage = () => {
   const [editingChip, setEditingChip] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [qrModal, setQrModal] = useState({ open: false, number: '', sessionCode: '', url: '' });
+  const qrPollRef = useRef(null);
+  const telAutoRef = useRef(null);
+  const [toast, setToast] = useState('');
+  
+  // Format number
+  const formatBRMobile = (value) => {
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+    const ddd = digits.slice(0, 2);
+    let rest = digits.slice(2);
+    if (!ddd) return '';
+    let mid = '';
+    if (rest.length > 0) {
+      if (rest[0] === '9') {
+        mid = ' 9 ' + rest.slice(1);
+      } else {
+        mid = ' ' + rest;
+      }
+    }
+    return `(${ddd})${mid}`.trim();
+  };
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [carrierFilter, setCarrierFilter] = useState('all');
-  const [consultantFilter, setConsultantFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Shared loader for initial load and manual refresh
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const [chipsResp, telsResp] = await Promise.all([
+        phoneService.getAllChips(),
+        phoneService.getAllTelSystems(),
+      ]);
+      setChips(chipsResp || []);
+      setTels(telsResp || []);
+    } catch (e) {
+      console.error('Erro ao carregar dados de telefone', e);
+      setError('Erro ao carregar dados de telefone');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const [chipsResp, telsResp] = await Promise.all([
-          phoneService.getAllChips(),
-          phoneService.getAllTelSystems(),
-        ]);
-        setChips(chipsResp || []);
-        setTels(telsResp || []);
-      } catch (e) {
-        console.error('Erro ao carregar dados de telefone', e);
-        setError('Erro ao carregar dados de telefone');
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
-  // Get unique carriers and consultants for filter dropdowns
-  const { carriers, consultants } = useMemo(() => {
-    const carriers = new Set();
-    const consultants = new Set();
-    
-    chips.forEach(chip => {
-      if (chip.carrier) carriers.add(chip.carrier);
-      if (chip.consultant) consultants.add(chip.consultant);
-    });
-    
-    return {
-      carriers: Array.from(carriers).sort(),
-      consultants: Array.from(consultants).sort()
+  // Auto-refresh Tel Sistemas list to avoid manual clicks
+  useEffect(() => {
+    // Clear any previous interval
+    if (telAutoRef.current) {
+      clearInterval(telAutoRef.current);
+      telAutoRef.current = null;
+    }
+    // Only refresh when Tel tab is active and QR modal is not open
+    if (activeList !== 'tels' || qrModal.open) return;
+
+    telAutoRef.current = setInterval(async () => {
+      try {
+        const updated = await phoneService.getAllTelSystems();
+        setTels(updated || []);
+      } catch (_) {
+        // ignore errors during background refresh
+      }
+    }, 5000);
+
+    return () => {
+      if (telAutoRef.current) {
+        clearInterval(telAutoRef.current);
+        telAutoRef.current = null;
+      }
     };
+  }, [activeList, qrModal.open]);
+
+  // Get unique carriers for filter dropdown
+  const carriers = useMemo(() => {
+    const set = new Set();
+    chips.forEach(chip => { if (chip.carrier) set.add(chip.carrier); });
+    return Array.from(set).sort();
   }, [chips]);
 
-  // Group tels by number and type (robust to missing type/consultant and duplicate records)
+  // Group tels by number and type; also capture battery/session for number-only documents
   const groupedTels = useMemo(() => {
     const groups = {};
     tels.forEach((tel) => {
       const numberKey = String(tel.number ?? '').trim();
       if (!numberKey) return; // skip invalid
       if (!groups[numberKey]) {
-        groups[numberKey] = { number: numberKey, types: {} };
+        groups[numberKey] = { number: numberKey, types: {}, batteryLevel: undefined, batteryUpdatedAt: undefined, sessionCode: undefined };
       }
       const typeKey = (tel.type ?? '').trim();
-      // Only map when type exists; number-only rows still create the group with empty type cells
       if (typeKey) {
         groups[numberKey].types[typeKey] = tel.consultant?.trim() || '';
+      } else {
+        // number-only record may carry battery/session metadata
+        if (typeof tel.batteryLevel === 'number') groups[numberKey].batteryLevel = tel.batteryLevel;
+        if (tel.batteryUpdatedAt) groups[numberKey].batteryUpdatedAt = tel.batteryUpdatedAt;
+        if (tel.sessionCode) groups[numberKey].sessionCode = tel.sessionCode;
+        if (tel.pairedAt) groups[numberKey].pairedAt = tel.pairedAt;
       }
     });
-    // Stable sort by number (numeric if possible, else lexicographic)
     return Object.values(groups).sort((a, b) => {
       const an = parseInt(a.number.replace(/\D/g, ''), 10);
       const bn = parseInt(b.number.replace(/\D/g, ''), 10);
@@ -103,12 +148,12 @@ const PhonePage = () => {
       // Carrier filter
       const matchesCarrier = carrierFilter === 'all' || chip.carrier === carrierFilter;
       
-      // Consultant filter
-      const matchesConsultant = consultantFilter === 'all' || chip.consultant === consultantFilter;
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || chip.status === statusFilter;
       
-      return matchesSearch && matchesCarrier && matchesConsultant;
+      return matchesSearch && matchesCarrier && matchesStatus;
     });
-  }, [chips, searchTerm, carrierFilter, consultantFilter]);
+  }, [chips, searchTerm, carrierFilter, statusFilter]);
 
   // Update stats based on filtered chips
   const chipStats = useMemo(() => {
@@ -245,6 +290,60 @@ const PhonePage = () => {
     }
   };
 
+  // Generate a session and open a QR image for pairing
+  const handleGenerateTelQR = async (number) => {
+    try {
+      const { sessionCode } = await phoneService.createTelSession({ number });
+      // Encode only the sessionCode so the mobile app can extract it directly
+      const data = encodeURIComponent(sessionCode);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}`;
+      setQrModal({ open: true, number, sessionCode, url: qrUrl });
+
+      // Start short polling to detect pairing (up to 60s)
+      if (qrPollRef.current) {
+        clearInterval(qrPollRef.current);
+        qrPollRef.current = null;
+      }
+      const startedAt = Date.now();
+      qrPollRef.current = setInterval(async () => {
+        try {
+          const updated = await phoneService.getAllTelSystems();
+          setTels(updated || []);
+          const pairedDoc = (updated || []).find(
+            (t) => t.number === number && !t.type && t.pairedAt
+          );
+          if (pairedDoc && new Date(pairedDoc.pairedAt).getTime() > startedAt) {
+            clearInterval(qrPollRef.current);
+            qrPollRef.current = null;
+            // Auto close modal and show toast
+            setQrModal({ open: false, number: '', sessionCode: '', url: '' });
+            setToast('Pareado com sucesso');
+            setTimeout(() => setToast(''), 3000);
+          }
+          if (Date.now() - startedAt > 60000) {
+            clearInterval(qrPollRef.current);
+            qrPollRef.current = null;
+          }
+        } catch (_) {
+          // ignore polling errors
+        }
+      }, 2000);
+    } catch (e) {
+      console.error('Erro ao gerar sessão/QR', e);
+      setError(e?.response?.data?.error || 'Erro ao gerar QR');
+    }
+  };
+
+  // Clear polling on unmount
+  useEffect(() => {
+    return () => {
+      if (qrPollRef.current) {
+        clearInterval(qrPollRef.current);
+        qrPollRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Switch de listas */}
@@ -264,15 +363,22 @@ const PhonePage = () => {
           </button>
         </div>
 
-        {activeList === 'chips' ? (
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleAddChip}>
-            Adicionar Chip
-          </Button>
-        ) : (
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleAddTel}>
-            Adicionar Tel
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {activeList === 'chips' ? (
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleAddChip}>
+              Adicionar Chip
+            </Button>
+          ) : (
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleAddTel}>
+              Adicionar Tel
+            </Button>
+          )}
+          {activeList === 'tels' && (
+            <Button variant="outline" onClick={load}>
+              Atualizar
+            </Button>
+          )}
+        </div>
       </div>
 
 
@@ -300,7 +406,7 @@ const PhonePage = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por IP, número, operadora ou consultor..."
+                    placeholder="Buscar por IP, número, operadora ou status..."
                     className="pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -321,17 +427,20 @@ const PhonePage = () => {
                   </SelectContent>
                 </Select>
                 
-                <Select value={consultantFilter} onValueChange={setConsultantFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Consultor" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os consultores</SelectItem>
-                    {consultants.map(consultant => (
-                      <SelectItem key={consultant} value={consultant}>
-                        {consultant}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Disponível">Disponível</SelectItem>
+                    <SelectItem value="Ativo/Aracaju">Ativo/Aracaju</SelectItem>
+                    <SelectItem value="Aguardando Análise">Aguardando Análise</SelectItem>
+                    <SelectItem value="Banido">Banido</SelectItem>
+                    <SelectItem value="Inativo">Inativo</SelectItem>
+                    <SelectItem value="Maturado">Maturado</SelectItem>
+                    <SelectItem value="Recarga Pendente">Recarga Pendente</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -341,7 +450,7 @@ const PhonePage = () => {
                   onClick={() => {
                     setSearchTerm('');
                     setCarrierFilter('all');
-                    setConsultantFilter('all');
+                    setStatusFilter('all');
                   }}
                   aria-label="Limpar filtros"
                   title="Limpar filtros"
@@ -374,12 +483,12 @@ const PhonePage = () => {
                   filteredChips.map((chip) => (
                     <div key={chip._id} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
                       <div className="md:col-span-2">{chip.ip}</div>
-                      <div className="md:col-span-2">{chip.number}</div>
+                      <div className="md:col-span-2">{formatBRMobile(chip.number)}</div>
                       <div className="md:col-span-2">
                         <span className="text-sm">{chip.status}</span>
                       </div>
                       <div className="md:col-span-2">{chip.carrier}</div>
-                      <div className="md:col-span-3">{chip.consultant}</div>
+                      <div className="md:col-span-3">{chip.consultant || '-'}</div>
                       <div className="md:col-span-1 flex justify-end space-x-2">
                         <Button 
                           variant="ghost" 
@@ -451,7 +560,17 @@ const PhonePage = () => {
                     ) : groupedTels.length > 0 ? (
                       groupedTels.map((group, index) => (
                         <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="p-3 font-medium">{group.number}</td>
+                          <td className="p-3 font-medium">
+                            <div className="flex items-center gap-2">
+                              <span>{group.number}</span>
+                              {typeof group.batteryLevel === 'number' && (
+                                <span className="text-xs text-muted-foreground">{group.batteryLevel}%</span>
+                              )}
+                              {group.pairedAt && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">Conectado</span>
+                              )}
+                            </div>
+                          </td>
                           {['Wtt1', 'Wtt2', 'Wtt1 -clone', 'Wtt2 -clone', 'Business', 'Business -clone'].map((type) => (
                             <td 
                               key={type}
@@ -465,6 +584,44 @@ const PhonePage = () => {
                           ))}
                           <td className="p-3 text-right">
                             <div className="flex justify-end space-x-2">
+                              {group.pairedAt && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                                  title="Desconectar"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await phoneService.unpairTel({ number: group.number });
+                                      const updated = await phoneService.getAllTelSystems();
+                                      setTels(updated || []);
+                                      setToast('Desconectado');
+                                      setTimeout(() => setToast(''), 2500);
+                                    } catch (err) {
+                                      console.error('Erro ao desconectar', err);
+                                      setError(err?.response?.data?.error || 'Erro ao desconectar');
+                                    }
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 12h6"/>
+                                    <path d="M15 12h6"/>
+                                    <path d="M9 7v10"/>
+                                  </svg>
+                                </Button>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                title="Gerar QR"
+                                onClick={(e) => { e.stopPropagation(); handleGenerateTelQR(group.number); }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+                                </svg>
+                              </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -507,6 +664,50 @@ const PhonePage = () => {
             </CardContent>
           </Card>
         </>
+      )}
+
+      {/* Modal de QR Code */}
+      {qrModal.open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setQrModal({ open: false, number: '', sessionCode: '', url: '' })}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative z-10 bg-white dark:bg-background border rounded-lg shadow-xl w-[95%] max-w-sm p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">QR Code de Pareamento</h3>
+              <button
+                className="p-1 rounded hover:bg-muted"
+                aria-label="Fechar"
+                onClick={() => setQrModal({ open: false, number: '', sessionCode: '', url: '' })}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div className="text-sm text-muted-foreground mb-3">
+              Número: <span className="font-medium">{qrModal.number}</span>
+            </div>
+            <div className="flex items-center justify-center">
+              <img src={qrModal.url} alt="QR Code" className="w-60 h-60" />
+            </div>
+            <div className="mt-3 text-xs text-muted-foreground break-all">
+              Session: {qrModal.sessionCode}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                className="px-3 py-1.5 border rounded-md hover:bg-muted"
+                onClick={() => setQrModal({ open: false, number: '', sessionCode: '', url: '' })}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modais */}

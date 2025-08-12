@@ -42,6 +42,22 @@ const phoneService = {
     await axios.delete(api.telsystems.delete(id));
     return true;
   },
+  async createTelSession({ number }) {
+    const { data } = await axios.post(api.telsystems.session(), { number });
+    return data;
+  },
+  async pairTel({ number, sessionCode }) {
+    const { data } = await axios.post(api.telsystems.pair(), { number, sessionCode });
+    return data;
+  },
+  async unpairTel({ number }) {
+    const { data } = await axios.post(api.telsystems.unpair(), { number });
+    return data;
+  },
+  async updateTelBattery({ number, batteryLevel }) {
+    const { data } = await axios.put(api.telsystems.battery(), { number, batteryLevel });
+    return data;
+  },
 };
 
 export default phoneService;

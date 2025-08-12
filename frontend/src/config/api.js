@@ -17,10 +17,15 @@ export default {
     delete: (id) => `${API_BASE_URL}/chips/${id}`,
   },
   telsystems: {
+    base: () => `${API_BASE_URL}/telsystems`,
     getAll: () => `${API_BASE_URL}/telsystems`,
     getById: (id) => `${API_BASE_URL}/telsystems/${id}`,
     create: () => `${API_BASE_URL}/telsystems`,
     update: (id) => `${API_BASE_URL}/telsystems/${id}`,
     delete: (id) => `${API_BASE_URL}/telsystems/${id}`,
+    unpair: () => `${API_BASE_URL}/telsystems/unpair`,
+    pair: () => `${API_BASE_URL}/telsystems/pair`,
+    session: () => `${API_BASE_URL}/telsystems/session`,
+    battery: () => `${API_BASE_URL}/telsystems/battery`,
   }
 };
