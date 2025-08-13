@@ -93,24 +93,10 @@ const Navbar = ({ activeItem = 'estoque', onChangeActive = () => {} }) => {
               >
                 <button
                   className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => { onChangeActive('estoque'); setAdminOpen(false); }}
+                  onClick={() => { onChangeActive('wallpaper'); setAdminOpen(false); }}
                   role="menuitem"
                 >
-                  Estoque
-                </button>
-                <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => { onChangeActive('telefone'); setAdminOpen(false); }}
-                  role="menuitem"
-                >
-                  Telefone
-                </button>
-                <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => { onChangeActive('usuarios'); setAdminOpen(false); }}
-                  role="menuitem"
-                >
-                  Usuários
+                  Wallpaper's
                 </button>
               </div>
             )}

@@ -1,5 +1,5 @@
 import express from 'express';
-import TelSystem from '../models/telsystem.model.js';
+import TelSystem from '../models/telSystem.model.js';
 
 const router = express.Router();
 

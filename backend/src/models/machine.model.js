@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 const machineSchema = new mongoose.Schema({
   name: { type: String, required: true },
   machineID: { type: Number, required: true, unique: true },
+  // URL base do agente de wallpaper desta máquina (ex.: http://DESKTOP01:8002)
+  agentUrl: { type: String },
   category: { 
     type: String, 
     required: true,
@@ -17,7 +19,7 @@ const machineSchema = new mongoose.Schema({
   processor: { type: String },
   ram: { 
     type: String,
-    enum: ['4GB', '8GB', '16GB', '32GB', null]
+    enum: ['4GB', '6GB', '8GB', '16GB', '32GB', null]
   },
   storage: {
     type: String,

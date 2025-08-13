@@ -10,7 +10,12 @@ const ChipSchema = new mongoose.Schema(
     },
     number: { type: String, required: true, trim: true },
     carrier: { type: String, enum: ['Vivo', 'Tim', 'Claro', 'Oi'], required: true },
-    consultant: { type: String, required: true, trim: true },
+    consultant: {
+      type: String,
+      trim: true,
+      required: false,
+      default: undefined,
+    },
     status: {
       type: String,
       enum: ['Ativo', 'Ativo/Aracaju', 'Aguardando Análise', 'Banido', 'Inativo', 'Maturado', 'Recarga Pendente'],

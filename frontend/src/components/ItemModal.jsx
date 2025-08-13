@@ -272,6 +272,7 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="4GB">4GB</SelectItem>
+                    <SelectItem value="6GB">6GB</SelectItem>
                     <SelectItem value="8GB">8GB</SelectItem>
                     <SelectItem value="16GB">16GB</SelectItem>
                     <SelectItem value="32GB">32GB</SelectItem>

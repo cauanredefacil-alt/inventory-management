@@ -69,6 +69,7 @@ const machineService = {
     return {
       id: machine._id,
       name: machine.name,
+      agentUrl: machine.agentUrl || null,
       type: machine.category,
       status: this.mapStatus(machine.status),
       location: machine.location || 'Não especificado',
@@ -115,6 +116,7 @@ const machineService = {
       location: frontend.location || undefined,
       user: frontend.user || undefined,
       machineID: frontend.machineId || frontend.machineID || undefined, // Handle both machineId and machineID
+      agentUrl: frontend.agentUrl || undefined,
       processor: frontend.processor || undefined,
       ram: frontend.ram || undefined,
       storage: frontend.storage || undefined,

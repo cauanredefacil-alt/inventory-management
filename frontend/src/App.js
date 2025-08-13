@@ -9,6 +9,7 @@ import DashboardCard from './components/DashboardCard';
 import StatusBadge from './components/StatusBadge';
 import Navbar from './components/Navbar';
 import PhonePage from './components/PhonePage';
+import WallpaperManager from './pages/WallpaperManager';
 import { useMachines } from './contexts/MachineContext';
 import './App.css';
 
@@ -203,6 +204,10 @@ function App() {
       {activeSection === 'telefone' ? (
         <div className="container mx-auto px-4 py-8">
           <PhonePage />
+        </div>
+      ) : activeSection === 'wallpaper' ? (
+        <div className="container mx-auto px-4 py-8">
+          <WallpaperManager />
         </div>
       ) : (
       <div className="container mx-auto px-4 py-8">
