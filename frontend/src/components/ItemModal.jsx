@@ -4,6 +4,7 @@ import { Cross2Icon } from '@radix-ui/react-icons';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import api from '../services/apiService';
 
 const ItemModal = ({ isOpen, onClose, item, onSave }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
     type: '', // Inicia sem valor selecionado
     status: 'available',
     location: '',
+    agentUrl: '',
     user: '',
     description: '',
     // Campos específicos de máquinas
@@ -19,6 +21,9 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
     ram: '',
     storage: ''
   });
+
+  const [locations, setLocations] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
 
   // Atualiza o formulário quando um item é passado (modo de edição)
   useEffect(() => {
@@ -40,11 +45,26 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
       const normalizedType = mapType(item.type);
       const finalType = allowedTypes.includes(normalizedType) ? normalizedType : '';
 
+      // Normalize agentUrl to display only host/IP (no scheme), omitting default port 8002
+      const displayAgentHost = (() => {
+        const raw = item.agentUrl || '';
+        if (!raw) return '';
+        try {
+          const u = new URL(raw);
+          const host = u.hostname || '';
+          const port = u.port || '';
+          return port && port !== '8002' ? `${host}:${port}` : host;
+        } catch {
+          return raw.replace(/^https?:\/\//i, '').replace(/\/$/, '').replace(/:\d+$/, '');
+        }
+      })();
+
       setFormData({
         name: item.name || '',
         type: finalType,
         status: item.status || 'available',
         location: item.location || '',
+        agentUrl: displayAgentHost,
         user: item.user || '',
         description: item.description || '',
         machineId: item.machineId || '',
@@ -59,6 +79,7 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
         type: '', // Sem categoria selecionada
         status: 'available',
         location: '',
+        agentUrl: '',
         user: '',
         description: '',
         machineId: '',
@@ -68,6 +89,23 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
       });
     }
   }, [item, isOpen]);
+
+  // Load saved locations when the modal opens
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        setLocationsLoading(true);
+        const resp = await api.get('/api/locations');
+        setLocations(Array.isArray(resp.data) ? resp.data : []);
+      } catch (e) {
+        console.error('Failed to load locations:', e);
+        setLocations([]);
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+    if (isOpen) loadLocations();
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -98,8 +136,24 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
       return;
     }
 
+    // Monta agentUrl completo a partir de host[:porta]
+    const buildAgentUrl = (hostInput) => {
+      const raw = (hostInput || '').trim();
+      if (!raw) return '';
+      // remove http(s):// se o usuário colar inteiro
+      const noScheme = raw.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+      // separa host e porta, se houver
+      const parts = noScheme.split(':');
+      const host = parts[0];
+      const port = parts[1] && /^\d{1,5}$/.test(parts[1]) ? parts[1] : '8002';
+      return `http://${host}:${port}`;
+    };
+
+    const agentUrlFull = buildAgentUrl(formData.agentUrl);
+
     const itemData = {
       ...formData,
+      agentUrl: agentUrlFull || undefined,
       details: {}
     };
 
@@ -195,24 +249,34 @@ const ItemModal = ({ isOpen, onClose, item, onSave }) => {
               </label>
               <Select 
                 name="location" 
-                value={formData.status === 'maintenance' ? 'MANUTENÇÃO' : (formData.location || '')} 
+                value={formData.status === 'maintenance' ? undefined : (formData.location ?? undefined)} 
                 onValueChange={(value) => handleChange({ target: { name: 'location', value: value === 'null' ? null : value } })}
                 disabled={formData.status === 'maintenance'}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma localização" />
+                  <SelectValue placeholder={locationsLoading ? 'Carregando...' : 'Selecione uma localização'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="null">Não especificado</SelectItem>
-                  <SelectItem value="SETOR MNT - SALA LINK">SETOR MNT - SALA LINK</SelectItem>
-                  <SelectItem value="SETOR MKT - SALA LINK">SETOR MKT - SALA LINK</SelectItem>
-                  <SelectItem value="SETOR BKO - SALA LINK">SETOR BKO - SALA LINK</SelectItem>
-                  <SelectItem value="OPERACIONAL">OPERACIONAL</SelectItem>
-                  <SelectItem value="COMERCIAL">COMERCIAL</SelectItem>
-                  <SelectItem value="RH">RH</SelectItem>
-                  <SelectItem value="FINANCEIRO">FINANCEIRO</SelectItem>
+                  {locations.map(loc => (
+                    <SelectItem key={loc._id || loc.name} value={loc.name}>{loc.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Agent URL (opcional) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none">
+                IP/Host do Agente (opcional)
+              </label>
+              <Input
+                name="agentUrl"
+                value={formData.agentUrl}
+                onChange={handleChange}
+                placeholder="Ex: 192.168.0.50 ou 192.168.0.50:8002"
+              />
+              <p className="text-xs text-muted-foreground">Informe apenas o IP/host (sem http). A porta padrão é 8002; informe :porta se for diferente.</p>
             </div>
 
             {/* Usuário Responsável */}

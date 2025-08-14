@@ -27,6 +27,9 @@ import io
 import platform
 import mimetypes
 from PIL import Image
+import socket
+import hashlib
+import subprocess
 
 # Configuração do logging
 logging.basicConfig(
@@ -51,6 +54,155 @@ URL_BACKEND = "http://localhost:5000/api/agentes"
 HOST = "0.0.0.0"
 PORT = PORTA_AGENTE
 PUBLIC_HOST = "localhost"
+
+# Valores calculados em runtime
+MACHINE_CODE = None  # Código único de 5 dígitos por máquina
+AGENT_URL = None     # URL acessível do agente (http://<ip_local>:<porta>)
+
+# Chave no Registro para persistir configurações do agente
+REGISTRY_PATH = r"Software\WallpaperAgent"
+
+# Helpers de Identidade e Sistema
+def _get_machine_guid() -> str:
+    """Obtém o MachineGuid do Windows (estável por máquina)."""
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Cryptography",
+            0,
+            winreg.KEY_READ | getattr(winreg, 'KEY_WOW64_64KEY', 0)
+        )
+        guid, _ = winreg.QueryValueEx(key, "MachineGuid")
+        key.Close()
+        return str(guid)
+    except Exception:
+        return ""
+
+def _compute_code_from_guid(guid: str) -> str:
+    """Gera um código de 5 dígitos a partir de um GUID (determinístico)."""
+    if not guid:
+        guid = platform.node() or "unknown"
+    digest = hashlib.sha1(guid.encode("utf-8")).hexdigest()
+    # Usa os últimos 9 hex para reduzir colisões, mod 100000 para 5 dígitos
+    num = int(digest[-9:], 16) % 100000
+    return f"{num:05d}"
+
+def get_or_create_machine_code() -> str:
+    """Lê do Registro HKCU; se não existir, calcula por MachineGuid e persiste."""
+    try:
+        # Tenta ler de HKCU
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_PATH, 0, winreg.KEY_READ)
+            code, _ = winreg.QueryValueEx(key, "MachineCode")
+            key.Close()
+            if code and isinstance(code, str) and len(code) == 5:
+                return code
+        except Exception:
+            pass
+
+        # Calcula a partir do MachineGuid (estável) e salva em HKCU
+        computed = _compute_code_from_guid(_get_machine_guid())
+        try:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, REGISTRY_PATH)
+            winreg.SetValueEx(key, "MachineCode", 0, winreg.REG_SZ, computed)
+            key.Close()
+        except Exception:
+            # Se falhar para escrever, ainda retorna o calculado
+            pass
+        return computed
+    except Exception:
+        # Fallback: número aleatório baseado no tempo (não ideal, mas evita crash)
+        return f"{int(time.time()) % 100000:05d}"
+
+def get_local_ip() -> str:
+    """Obtém o IP local preferencial (interface de saída)."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except Exception:
+            return "127.0.0.1"
+
+def get_motherboard_info() -> Dict[str, Any]:
+    """Tenta obter fabricante/produto/serial da placa-mãe via WMIC (sem dependências extras)."""
+    info = {"manufacturer": None, "product": None, "serial": None}
+    try:
+        result = subprocess.run(
+            ["wmic", "baseboard", "get", "Manufacturer,Product,SerialNumber", "/format:csv"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout:
+            lines = [l.strip() for l in result.stdout.splitlines() if l.strip()]
+            # Esperado: Node,Manufacturer,Product,SerialNumber
+            if len(lines) >= 2:
+                headers = [h.strip().lower() for h in lines[0].split(',')]
+                values = [v.strip() for v in lines[1].split(',')]
+                mapping = dict(zip(headers, values))
+                info["manufacturer"] = mapping.get("manufacturer")
+                info["product"] = mapping.get("product")
+                info["serial"] = mapping.get("serialnumber")
+    except Exception:
+        pass
+    return info
+
+def bytes_to_gb(n: int) -> float:
+    try:
+        return round(n / (1024**3), 2)
+    except Exception:
+        return 0.0
+
+def get_system_info() -> Dict[str, Any]:
+    """Coleta nome do dispositivo, RAM, armazenamento, placa-mãe, IP e agentUrl."""
+    info: Dict[str, Any] = {}
+    try:
+        info["device_name"] = os.environ.get("COMPUTERNAME") or platform.node() or "Desconhecido"
+        # RAM e Disco: usar shutil.disk_usage e ctypes para RAM se psutil não estiver disponível
+        try:
+            import psutil  # opcional
+            vm = psutil.virtual_memory()
+            info["ram_total_gb"] = bytes_to_gb(getattr(vm, "total", 0))
+        except Exception:
+            # Fallback RAM via ctypes GlobalMemoryStatusEx
+            try:
+                class MEMORYSTATUSEX(ctypes.Structure):
+                    _fields_ = [
+                        ("dwLength", ctypes.c_ulong),
+                        ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                    ]
+                stat = MEMORYSTATUSEX()
+                stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+                info["ram_total_gb"] = bytes_to_gb(stat.ullTotalPhys)
+            except Exception:
+                info["ram_total_gb"] = None
+        # Armazenamento (disco do sistema)
+        try:
+            total, used, free = shutil.disk_usage(os.getenv('SystemDrive') + "\\")
+        except Exception:
+            total, used, free = shutil.disk_usage("/")
+        info["storage_total_gb"] = bytes_to_gb(total)
+        info["storage_free_gb"] = bytes_to_gb(free)
+        # Placa-mãe
+        info["motherboard"] = get_motherboard_info()
+        # IP e URL do agente
+        ip = get_local_ip()
+        info["ip"] = ip
+        info["agent_url"] = f"http://{ip}:{PORT}"
+    except Exception as e:
+        logger.warning(f"Falha ao coletar informações do sistema: {e}")
+    return info
 
 # Configuração do MongoDB
 MONGO_URI = "mongodb+srv://frontend-puro:redefacil@frontend-puro.gblsaeh.mongodb.net/frontend-puro?retryWrites=true&w=majority&appName=frontend-puro"
@@ -397,6 +549,32 @@ def alterar_papel_de_parede_windows(imagem_data: bytes, estilo: str = "preencher
 async def iniciar_agente():
     """Inicia o agente em uma thread separada."""
     logger.info("Iniciando agente em segundo plano...")
+    try:
+        # Define código único e URL do agente e persiste no Registro
+        global MACHINE_CODE, AGENT_URL
+        MACHINE_CODE = get_or_create_machine_code()
+        ip = get_local_ip()
+        AGENT_URL = f"http://{ip}:{PORT}"
+        try:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, REGISTRY_PATH)
+            winreg.SetValueEx(key, "AgentUrl", 0, winreg.REG_SZ, AGENT_URL)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+        logger.info(f"MachineCode: {MACHINE_CODE} | AgentUrl: {AGENT_URL}")
+    except Exception as e:
+        logger.warning(f"Falha ao preparar identidade do agente: {e}")
+
+    # Tenta configurar auto start no Windows (HKCU\...\Run)
+    try:
+        run_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+        cmd = f'"{sys.executable}" "{os.path.abspath(__file__)}"'
+        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, run_path)
+        winreg.SetValueEx(key, "WallpaperAgent", 0, winreg.REG_SZ, cmd)
+        winreg.CloseKey(key)
+        logger.info("Auto-start configurado em HKCU Run")
+    except Exception as e:
+        logger.warning(f"Não foi possível configurar auto-start: {e}")
     
     # Inicia o registro com o backend, se necessário
     if REGISTRAR_COM_BACKEND:
@@ -535,10 +713,18 @@ def get_current_wallpaper() -> tuple[str, str, str]:
 def registrar_no_backend():
     while True:
         try:
+            sysinfo = get_system_info()
             dados = {
                 "id_agente": ID_AGENTE,
-                "endereco": f"http://{HOST}:{PORT}",
-                "tipo": "wallpaper"
+                "codigo": MACHINE_CODE or get_or_create_machine_code(),
+                "endereco": (AGENT_URL or sysinfo.get("agent_url") or f"http://{HOST}:{PORT}"),
+                "tipo": "wallpaper",
+                "device_name": sysinfo.get("device_name"),
+                "ip": sysinfo.get("ip"),
+                "ram_total_gb": sysinfo.get("ram_total_gb"),
+                "storage_total_gb": sysinfo.get("storage_total_gb"),
+                "storage_free_gb": sysinfo.get("storage_free_gb"),
+                "motherboard": sysinfo.get("motherboard"),
             }
             response = requests.post(
                 f"{URL_BACKEND}/registrar",
@@ -631,8 +817,9 @@ async def obter_status(request: Request):
             except Exception:
                 pass
         
-        # Obtém o nome do computador
-        desktop_name = os.environ.get("COMPUTERNAME") or platform.node() or "Desconhecido"
+        # Infos da máquina
+        sysinfo = get_system_info()
+        desktop_name = sysinfo.get("device_name") or os.environ.get("COMPUTERNAME") or platform.node() or "Desconhecido"
 
         return {
             "status": "online",
@@ -641,7 +828,16 @@ async def obter_status(request: Request):
             "wallpaper": wallpaper_data,
             "timestamp": datetime.datetime.now().isoformat(),
             "mongo_connected": mongo_connected,
-            "desktop": desktop_name
+            "desktop": desktop_name,
+            "machine_code": MACHINE_CODE or get_or_create_machine_code(),
+            "agent_url": AGENT_URL or sysinfo.get("agent_url"),
+            "ip": sysinfo.get("ip"),
+            "hardware": {
+                "ram_total_gb": sysinfo.get("ram_total_gb"),
+                "storage_total_gb": sysinfo.get("storage_total_gb"),
+                "storage_free_gb": sysinfo.get("storage_free_gb"),
+                "motherboard": sysinfo.get("motherboard"),
+            }
         }
     except Exception as e:
         logger.error(f"Erro ao obter status: {str(e)}")

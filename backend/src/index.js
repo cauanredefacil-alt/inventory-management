@@ -5,6 +5,8 @@ import cors from 'cors';
 import machineRoutes from './routes/machine.routes.js';
 import chipRoutes from './routes/chip.routes.js';
 import telSystemRoutes from './routes/telsystem.routes.js';
+import productRoutes from './routes/product.routes.js';
+import locationRoutes from './routes/location.routes.js';
 
 dotenv.config();
 
@@ -77,6 +79,8 @@ connectDB();
 app.use('/api/machines', machineRoutes);
 app.use('/api/chips', chipRoutes);
 app.use('/api/telsystems', telSystemRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/locations', locationRoutes);
 
 app.get('/', (req, res) => {
   res.send('Inventory API is running');
