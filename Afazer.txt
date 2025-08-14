@@ -1,0 +1,85 @@
+Nome
+Usuário (Pessoa que está na máquina)
+
+Tipo (maquina/periferico/monitor)
+
+Se for máquina vai ter =
+Id da máquina
+Botão para se for máquina ele fica ao lado do botão de editar um botão com simbolo (i) para exibir configurações (em uma box flutuante) da máquina (processador, memória ram, placa mãe...) e podendo editar essas informações
+Estado
+
+Se for periferico/monitor =
+
+Marca
+Estado
+
+Adicionar localização quando for adicionar uma maquina onde vai para o mongodb também
+
+
+
+Ao sair da tela do modal na gestão de chips ele deixa a página fixa sem poder mover para cima e para baixo
+
+
+
+Melhorar CSS Gerenciamento de Estoque 
+
+Css ao escolher tema escuro a nav bar fica #10195F
+E no tema claro a navbar fica #FF6D09
+
+Colocar a parte dos telefones e chip's (excel)
+
+Colocar uma parte para os verificar o tempo de limpeza dos computador de 3 em 3 mesês enviar um e-mail dizendo que é pra limpar tal maquina
+
+
+Setor BKO - Sala link
+
+RH
+FINANCEIRO
+
+5356 - beatriz
+
+091
+DESKTOP-97UUK05
+i3-3210
+8gb de ram
+120gb ssd
+
+090 é 079 corrigir
+
+011 e 079 CIOP fixo!
+
+
+Com o @modal.js  faça o editar de ações funcionar para quando clicar abrir um modal para poder mudar informações atuais
+
+ajuste o botão de cancelas e de salvar no modal.
+
+
+
+Colocar para setores (Est-Aju-SP)
+
+
+
+
+
+
+Se for escolhido máquina em tipo vai aparecer os inputs
+ID/Número de Série;Processador;Memória RAM;Armazenamento
+
+
+.bat para desativador de sites/Baixar chrome/Baixar firefox/baixar whatsapp/aplicativo papel de parede
+
+Fazer um programa em python para rodar em segundo plano onde ele vai mudar o papel de parede dos computadores por base64 se a base64 do servidor mudar, o papel de parede de todos os computadores mudam
+
+Atualização futura - Conectar o app de papel de parede com o mongodb para reconhecer cada pc e seu usuario caso venha a ter um background para cada pessoa do comercial
+
+Monitoramento do uso do computador (cpu, memoria ram, uso de rede....)
+
+Icone de danger
+
+Verificar se o computador ta ligado/com ou sem internet
+ip do computador
+
+
+
+
+ID DO CELULAR / NOME DO BACNO / NOME DO USUARIO
