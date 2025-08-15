@@ -113,7 +113,7 @@ const machineService = {
       name: frontend.name,
       category: categoryMap[frontend.type] || frontend.type, // aceita já pt-BR se vier
       status: statusMap[frontend.status] || frontend.status, // aceita já pt-BR se vier
-      location: frontend.location || undefined,
+      location: (typeof frontend.location === 'string' && frontend.location.trim()) ? frontend.location.trim() : undefined,
       user: frontend.user || undefined,
       machineID: frontend.machineId || frontend.machineID || undefined, // Handle both machineId and machineID
       agentUrl: frontend.agentUrl || undefined,

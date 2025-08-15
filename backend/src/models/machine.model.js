@@ -28,13 +28,7 @@ const machineSchema = new mongoose.Schema({
       '500GB HD', '1TB HD', '2TB HD', null
     ]
   },
-  location: {
-    type: String,
-    enum: [
-      'SETOR MNT - SALA LINK', 'SETOR MKT - SALA LINK', 'SETOR BKO - SALA LINK', 
-      'OPERACIONAL', 'COMERCIAL', 'RH', 'FINANCEIRO', null
-    ]
-  },
+  location: { type: String },
   user: { type: String },
   // Campo para outros tipos de dispositivos
   description: { type: String }

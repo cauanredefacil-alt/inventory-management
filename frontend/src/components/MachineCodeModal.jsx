@@ -15,6 +15,10 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
   const [agentUrl, setAgentUrl] = useState(''); // fallback manual
   const [locations, setLocations] = useState([]);
   const [location, setLocation] = useState('');
+  const [status, setStatus] = useState('available');
+  const [machineId, setMachineId] = useState(''); // opcional, diferente do código
+
+  // Lista vinda do backend (/api/locations) passa a ser a fonte de verdade
 
   useEffect(() => {
     if (!isOpen) {
@@ -25,6 +29,8 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
       setAgentUrl('');
       setLocation('');
       setLocations([]);
+      setMachineId('');
+      setStatus('available');
     }
   }, [isOpen]);
 
@@ -39,6 +45,14 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
     };
     if (isOpen) loadLocations();
   }, [isOpen]);
+
+  // Se a localização selecionada não existir mais na lista carregada, limpa
+  useEffect(() => {
+    if (!isOpen) return;
+    if (location && !(locations || []).some(l => l?.name === location)) {
+      setLocation('');
+    }
+  }, [isOpen, location, locations]);
 
   // Normaliza o endereço informado (ex.: "192.168.50.8" -> "http://192.168.50.8:8002")
   const normalizeAgentUrl = (value) => {
@@ -139,6 +153,15 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
     if (!agentInfo) return;
     try {
       const name = agentInfo?.desktop || 'Máquina sem nome';
+      // Validação: só envia se existir na lista carregada ou se for string não vazia (backend agora aceita qualquer string)
+      const loc = (location || '').trim();
+      const existsInList = (locations || []).some(l => l?.name === loc);
+      const locationToSend = loc ? loc : undefined;
+      const cleanCpuName = (s) => {
+        if (!s) return '';
+        // Remove sufixos de frequência, ex: " @ 3.20GHz"
+        return String(s).replace(/\s*@.*$/i, '').trim();
+      };
       const toNumber = (v) => {
         const n = Number(v);
         return Number.isFinite(n) ? n : undefined;
@@ -174,17 +197,18 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
       const payload = {
         name,
         type: 'machine',
-        status: 'available',
-        location,
+        status,
+        location: locationToSend,
         agentUrl: agentInfo?.agent_url || agentInfo?.agentUrl || agentUrl,
-        machineId: agentInfo?.machine_code || code,
-        processor: agentInfo?.hardware?.motherboard?.product || '',
+        machineId: machineId || undefined, // não usar o código como machineId
+        processor: cleanCpuName(agentInfo?.hardware?.cpu?.name) || agentInfo?.hardware?.motherboard?.product || '',
         ram: ramEnum || undefined,
         storage: storageEnum || undefined,
+        // Persistimos o Código no início da descrição para exibir nos cards
         description: `IP: ${agentInfo?.ip || ''}`
       };
-      await machineService.createMachine(payload);
-      onSaved?.();
+      const created = await machineService.createMachine(payload);
+      onSaved?.(created);
       onClose?.();
     } catch (e) {
       setError(e?.response?.data?.error || e.message || 'Erro ao salvar máquina');
@@ -195,7 +219,7 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose?.(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-md border bg-background text-foreground p-6 shadow-lg focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 w-[90vw] max-w-[600px] max-h-[85vh] -translate-x-1/2 -translate-y-1/2 rounded-md border bg-background text-foreground p-6 shadow-lg focus:outline-none overflow-y-auto">
           <Dialog.Title className="text-lg font-semibold">Adicionar Máquina por Código</Dialog.Title>
           <Dialog.Description className="mt-1 text-sm text-muted-foreground">
             Informe o código de 5 dígitos da máquina para localizar o agente e confirmar as informações.
@@ -252,6 +276,7 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
                   <div><span className="text-muted-foreground">Código:</span> {agentInfo.machine_code || code}</div>
                   <div><span className="text-muted-foreground">IP:</span> {agentInfo.ip || '—'}</div>
                   <div><span className="text-muted-foreground">Agent URL:</span> {agentInfo.agent_url || agentInfo.agentUrl || agentUrl || '—'}</div>
+                  <div className="col-span-2"><span className="text-muted-foreground">Processador:</span> {agentInfo?.hardware?.cpu?.name || '—'}</div>
                   <div className="col-span-2"><span className="text-muted-foreground">RAM total:</span> {agentInfo?.hardware?.ram_total_gb ? `${agentInfo.hardware.ram_total_gb} GB` : '—'}</div>
                   <div className="col-span-2"><span className="text-muted-foreground">Armazenamento total:</span> {agentInfo?.hardware?.storage_total_gb ? `${agentInfo.hardware.storage_total_gb} GB` : '—'}</div>
                   <div className="col-span-2"><span className="text-muted-foreground">Placa-mãe:</span> {agentInfo?.hardware?.motherboard?.product || agentInfo?.hardware?.motherboard?.manufacturer || '—'}</div>
@@ -271,6 +296,31 @@ const MachineCodeModal = ({ isOpen, onClose, onSaved }) => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">Você pode adicionar novas localizações no botão "Adicionar Local".</p>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Status</label>
+                <Select value={status} onValueChange={(v) => setStatus(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Disponível</SelectItem>
+                    <SelectItem value="in-use">Em uso</SelectItem>
+                    <SelectItem value="maintenance">Em manutenção</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* ID da máquina (opcional) */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">ID da máquina (opcional)</label>
+                <Input
+                  value={machineId}
+                  onChange={(e) => setMachineId(e.target.value)}
+                  placeholder="Ex: PC-001"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

@@ -31,13 +31,38 @@ import socket
 import hashlib
 import subprocess
 
-# Configuração do logging
+# Configuração do logging (usa diretório gravável para evitar PermissionError no boot)
+def _get_writable_log_dir() -> str:
+    candidates = [
+        os.path.join(os.environ.get('PROGRAMDATA', ''), 'WallpaperAgent', 'logs'),
+        os.path.join(os.environ.get('APPDATA', ''), 'WallpaperAgent', 'logs'),
+        os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'WallpaperAgent', 'logs'),
+        os.path.dirname(os.path.abspath(sys.argv[0])),  # pasta do executável/pyinstaller
+    ]
+    for d in candidates:
+        if not d:
+            continue
+        try:
+            os.makedirs(d, exist_ok=True)
+            test_path = os.path.join(d, '.writetest')
+            with open(test_path, 'w', encoding='utf-8') as f:
+                f.write('ok')
+            os.remove(test_path)
+            return d
+        except Exception:
+            continue
+    # fallback para diretório atual
+    return os.getcwd()
+
+LOG_DIR = _get_writable_log_dir()
+LOG_FILE = os.path.join(LOG_DIR, 'wallpaper_agent.log')
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('wallpaper_agent.log', encoding='utf-8')
+        logging.FileHandler(LOG_FILE, encoding='utf-8')
     ]
 )
 logger = logging.getLogger('WallpaperAgent')
@@ -150,6 +175,39 @@ def get_motherboard_info() -> Dict[str, Any]:
         pass
     return info
 
+def get_cpu_info() -> Dict[str, Any]:
+    """Obtém informações básicas do processador via WMIC (sem dependências extras)."""
+    info = {"name": None, "cores": None, "threads": None}
+    try:
+        result = subprocess.run(
+            ["wmic", "cpu", "get", "Name,NumberOfCores,NumberOfLogicalProcessors", "/format:csv"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout:
+            lines = [l.strip() for l in result.stdout.splitlines() if l.strip()]
+            # Esperado: Node,Name,NumberOfCores,NumberOfLogicalProcessors
+            if len(lines) >= 2:
+                headers = [h.strip().lower() for h in lines[0].split(',')]
+                values = [v.strip() for v in lines[1].split(',')]
+                mapping = dict(zip(headers, values))
+                info["name"] = mapping.get("name")
+                # números opcionais
+                try:
+                    info["cores"] = int(mapping.get("numberofcores")) if mapping.get("numberofcores") else None
+                except Exception:
+                    pass
+                try:
+                    info["threads"] = int(mapping.get("numberoflogicalprocessors")) if mapping.get("numberoflogicalprocessors") else None
+                except Exception:
+                    pass
+    except Exception:
+        # Fallback simples
+        try:
+            info["name"] = platform.processor() or None
+        except Exception:
+            pass
+    return info
+
 def bytes_to_gb(n: int) -> float:
     try:
         return round(n / (1024**3), 2)
@@ -196,6 +254,8 @@ def get_system_info() -> Dict[str, Any]:
         info["storage_free_gb"] = bytes_to_gb(free)
         # Placa-mãe
         info["motherboard"] = get_motherboard_info()
+        # CPU
+        info["cpu"] = get_cpu_info()
         # IP e URL do agente
         ip = get_local_ip()
         info["ip"] = ip
@@ -710,6 +770,53 @@ def get_current_wallpaper() -> tuple[str, str, str]:
         logger.warning(f"Não foi possível acessar o registro do Windows: {str(e)}")
         return "Não foi possível obter informações do papel de parede", "", ""
 
+def get_mac_addresses() -> list:
+    macs = []
+    try:
+        # Tenta via comando getmac (Windows)
+        result = subprocess.run(["getmac", "/fo", "csv", "/v"], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout:
+            lines = [l.strip() for l in result.stdout.splitlines() if l.strip()]
+            # Ignora cabeçalho CSV e parseia a coluna do MAC
+            # Exemplo de header: "Connection Name","Network Adapter","Physical Address","Transport Name"
+            import csv
+            reader = csv.reader(lines)
+            headers = next(reader, [])
+            mac_idx = None
+            for i, h in enumerate(headers):
+                if h.lower().startswith("physical address"):
+                    mac_idx = i
+                    break
+            if mac_idx is not None:
+                for row in reader:
+                    if len(row) > mac_idx:
+                        mac = row[mac_idx].strip().replace('-', ':')
+                        if mac and mac != 'N/A' and mac not in macs:
+                            macs.append(mac)
+    except Exception:
+        pass
+    # Fallback para uuid.getnode()
+    try:
+        import uuid
+        node = uuid.getnode()
+        if node and (node >> 40) % 2 == 0:
+            mac = ':'.join([f"{(node >> ele) & 0xff:02x}" for ele in range(40, -1, -8)])
+            if mac not in macs:
+                macs.append(mac)
+    except Exception:
+        pass
+    return macs
+
+def send_magic_packet(mac: str, ip_broadcast: str = '255.255.255.255', port: int = 9) -> None:
+    mac_clean = mac.replace('-', '').replace(':', '').replace(' ', '')
+    if len(mac_clean) != 12:
+        raise ValueError('MAC inválido')
+    data = bytes.fromhex('FF' * 6 + mac_clean * 16)
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.sendto(data, (ip_broadcast, port))
+
 def registrar_no_backend():
     while True:
         try:
@@ -832,11 +939,13 @@ async def obter_status(request: Request):
             "machine_code": MACHINE_CODE or get_or_create_machine_code(),
             "agent_url": AGENT_URL or sysinfo.get("agent_url"),
             "ip": sysinfo.get("ip"),
+            "macs": get_mac_addresses(),
             "hardware": {
                 "ram_total_gb": sysinfo.get("ram_total_gb"),
                 "storage_total_gb": sysinfo.get("storage_total_gb"),
                 "storage_free_gb": sysinfo.get("storage_free_gb"),
                 "motherboard": sysinfo.get("motherboard"),
+                "cpu": sysinfo.get("cpu"),
             }
         }
     except Exception as e:
@@ -850,6 +959,29 @@ async def obter_status(request: Request):
             "detalhes": str(e),
             "mongo_connected": client is not None and client.admin.command('ping').get('ok') == 1.0
         }
+
+@app.post("/wol")
+async def wake_on_lan(mac: str):
+    try:
+        if not mac:
+            raise HTTPException(status_code=400, detail="MAC é obrigatório")
+        send_magic_packet(mac)
+        return {"ok": True, "message": f"Magic packet enviado para {mac}"}
+    except Exception as e:
+        logger.error(f"Erro ao enviar WOL: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/shutdown")
+async def shutdown_machine():
+    try:
+        # Desliga a máquina local (Windows)
+        result = subprocess.run(["shutdown", "/s", "/t", "0"], capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr or "Falha ao executar shutdown")
+        return {"ok": True, "message": "Comando de desligar enviado"}
+    except Exception as e:
+        logger.error(f"Erro no shutdown: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/alterar_papel_de_parede")
 async def alterar_papel_de_parede(file: UploadFile = File(...), estilo: str = Form(...)):
