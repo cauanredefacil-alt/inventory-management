@@ -8,6 +8,7 @@ import telSystemRoutes from './routes/telsystem.routes.js';
 import productRoutes from './routes/product.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import wolRoutes from './routes/wol.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 dotenv.config();
 
@@ -83,6 +84,7 @@ app.use('/api/telsystems', telSystemRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/wol', wolRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('Inventory API is running');

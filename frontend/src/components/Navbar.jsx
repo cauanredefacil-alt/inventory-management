@@ -27,6 +27,12 @@ const Navbar = ({ activeItem = 'estoque', onChangeActive = () => {} }) => {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [adminOpen]);
 
+  // Navegar para a página de bloqueio de sites
+  const goToBlockSites = () => {
+    onChangeActive('blocksites');
+    setAdminOpen(false);
+  };
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -97,6 +103,13 @@ const Navbar = ({ activeItem = 'estoque', onChangeActive = () => {} }) => {
                   role="menuitem"
                 >
                   Wallpaper's
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                  onClick={goToBlockSites}
+                  role="menuitem"
+                >
+                  Bloquear sites
                 </button>
               </div>
             )}

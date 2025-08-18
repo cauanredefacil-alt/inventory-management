@@ -5,6 +5,8 @@ const machineSchema = new mongoose.Schema({
   machineID: { type: Number, required: true, unique: true },
   // URL base do agente de wallpaper desta máquina (ex.: http://DESKTOP01:8002)
   agentUrl: { type: String },
+  // MAC persistido para WOL quando o agente estiver offline
+  mac: { type: String },
   category: { 
     type: String, 
     required: true,

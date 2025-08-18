@@ -10,6 +10,8 @@ import StatusBadge from './components/StatusBadge';
 import Navbar from './components/Navbar';
 import PhonePage from './components/PhonePage';
 import WallpaperManager from './pages/WallpaperManager';
+import BlockSites from './pages/BlockSites';
+import UsersPage from './pages/Users';
 import { useMachines } from './contexts/MachineContext';
 import './App.css';
 
@@ -208,6 +210,14 @@ function App() {
       ) : activeSection === 'wallpaper' ? (
         <div className="container mx-auto px-4 py-8">
           <WallpaperManager />
+        </div>
+      ) : activeSection === 'blocksites' ? (
+        <div className="container mx-auto px-4 py-8">
+          <BlockSites />
+        </div>
+      ) : activeSection === 'usuarios' ? (
+        <div className="container mx-auto px-4 py-8">
+          <UsersPage />
         </div>
       ) : (
       <div className="container mx-auto px-4 py-8">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { UploadIcon, ReloadIcon, GearIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { toast } from 'sonner';
@@ -65,6 +66,17 @@ export default function WallpaperManager() {
       if (!res.ok) throw new Error('Falha ao obter status');
       const data = await res.json();
       setAgentStatuses((prev) => ({ ...prev, [machine._id]: { loading: false, error: null, data } }));
+      // Persistir MAC aprendido do agente, se diferente do salvo
+      try {
+        const firstMac = Array.isArray(data?.macs) && data.macs.length > 0 ? data.macs[0] : null;
+        if (firstMac && machine?.mac !== firstMac) {
+          await machineService.updateMachine(machine._id, { mac: firstMac });
+          // atualizar estado local de machines
+          setMachines((prev) => prev.map(m => m._id === machine._id ? { ...m, mac: firstMac } : m));
+        }
+      } catch (persistErr) {
+        console.warn('Falha ao persistir MAC aprendido do agente:', persistErr);
+      }
     } catch (e) {
       setAgentStatuses((prev) => ({ ...prev, [machine._id]: { loading: false, error: e.message || 'Erro', data: null } }));
     }
@@ -96,15 +108,21 @@ export default function WallpaperManager() {
     // Preseleciona primeiro MAC quando abre modal
     if (isInfoOpen) {
       const macs = selectedStatus?.macs || [];
-      setSelectedMac(macs[0] || '');
+      if (macs.length > 0) {
+        setSelectedMac(macs[0]);
+      } else {
+        // fallback para MAC persistido na máquina quando offline
+        const m = machines.find(x => x._id === infoTargetId);
+        setSelectedMac(m?.mac || '');
+      }
     } else {
       setSelectedMac('');
     }
-  }, [isInfoOpen, selectedStatus]);
+  }, [isInfoOpen, selectedStatus, infoTargetId, machines]);
 
   const sendWOL = async () => {
     try {
-      const mac = selectedMac || (selectedStatus?.macs?.[0] || '');
+      const mac = selectedMac || (selectedStatus?.macs?.[0] || selectedMachine?.mac || '');
       if (!mac) {
         toast.error('Nenhum MAC disponível para WOL.');
         return;
@@ -114,6 +132,15 @@ export default function WallpaperManager() {
         throw new Error(resp?.data?.error || 'Falha ao enviar WOL');
       }
       toast.success(`WOL enviado para ${mac}`);
+      // Se o MAC usado for diferente do persistido na máquina, salvar
+      try {
+        if (selectedMachine && selectedMachine.mac !== mac) {
+          await machineService.updateMachine(selectedMachine._id, { mac });
+          setMachines((prev) => prev.map(m => m._id === selectedMachine._id ? { ...m, mac } : m));
+        }
+      } catch (persistErr) {
+        console.warn('Falha ao persistir MAC após WOL:', persistErr);
+      }
     } catch (e) {
       toast.error(e.message || 'Erro ao enviar WOL');
     }
@@ -415,8 +442,8 @@ export default function WallpaperManager() {
                         <div className="text-sm font-semibold mb-2">Energia</div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="text-muted-foreground text-xs">MAC para WOL:</div>
-                          <input
-                            className="border rounded px-2 py-1 text-xs"
+                          <Input
+                            className="h-8 text-xs max-w-[240px]"
                             placeholder="AA:BB:CC:DD:EE:FF"
                             value={selectedMac}
                             onChange={(e) => setSelectedMac(e.target.value)}
